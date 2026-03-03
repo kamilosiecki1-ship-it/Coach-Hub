@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, ArrowRight, ChevronRight, BookMarked, Pin } from "lucide-react";
+import { ArrowRight, ChevronRight, BookMarked, Pin } from "lucide-react";
 import Link from "next/link";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -62,45 +62,36 @@ export default async function PulpitPage() {
   return (
     <AppLayout>
       <div className="p-8 max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold">Pulpit</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Witaj, {session.user.name ?? session.user.email}! Oto Twój przegląd coachingowy.
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white dark:bg-card rounded-2xl border shadow-sm p-6 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center shrink-0">
-              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold leading-none">{sessionsThisMonth.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">Sesji w tym miesiącu</p>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-card rounded-2xl border shadow-sm p-6 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold leading-none">
-                {totalHours > 0 ? `${totalHours}h` : ""}{remainingMinutes > 0 ? ` ${remainingMinutes}m` : totalMinutes === 0 ? "0h" : ""}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Łączny czas sesji</p>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-card rounded-2xl border shadow-sm p-6 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-violet-50 dark:bg-violet-950/30 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold leading-none">{recentClients.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">Aktywni klienci</p>
+        {/* Premium gradient hero — header + stats */}
+        <div className="relative overflow-hidden rounded-2xl header-gradient mb-8">
+          <div className="absolute -top-8 -right-8 w-56 h-56 rounded-full bg-white/20 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-6 w-44 h-44 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+          <div className="relative z-10 px-8 py-7">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              <div>
+                <h1 className="text-2xl font-semibold text-white">Pulpit</h1>
+                <p className="text-sm text-white/70 mt-0.5">
+                  Witaj, {session.user.name ?? session.user.email}! Oto Twój przegląd coachingowy.
+                </p>
+              </div>
+              <div className="flex items-center gap-8">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-white leading-none">{sessionsThisMonth.length}</p>
+                  <p className="text-xs text-white/60 mt-1.5">Sesji w miesiącu</p>
+                </div>
+                <div className="w-px h-12 bg-white/20" />
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-white leading-none">
+                    {totalHours > 0 ? `${totalHours}h` : ""}{remainingMinutes > 0 ? ` ${remainingMinutes}m` : totalMinutes === 0 ? "0h" : ""}
+                  </p>
+                  <p className="text-xs text-white/60 mt-1.5">Łączny czas</p>
+                </div>
+                <div className="w-px h-12 bg-white/20" />
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-white leading-none">{recentClients.length}</p>
+                  <p className="text-xs text-white/60 mt-1.5">Aktywni klienci</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

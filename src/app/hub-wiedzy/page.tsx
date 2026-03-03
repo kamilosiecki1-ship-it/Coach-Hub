@@ -188,15 +188,30 @@ export default function HubWiedzyPage() {
   return (
     <AppLayout>
       <div className="p-8 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold">Hub wiedzy</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Narzędzia i techniki coachingowe.</p>
+        {/* Premium gradient hero */}
+        <div className="relative overflow-hidden rounded-2xl header-gradient mb-8">
+          <div className="absolute -top-6 -right-6 w-44 h-44 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+          <div className="relative z-10 px-7 py-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-2xl bg-white/20 border border-white/30 shadow-sm flex items-center justify-center shrink-0">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-white">Hub wiedzy</h1>
+                  <p className="text-sm text-white/70 mt-0.5">Narzędzia i techniki coachingowe.</p>
+                </div>
+              </div>
+              <button
+                onClick={openAdd}
+                className="flex items-center gap-1.5 h-9 px-4 text-sm font-medium bg-white/20 hover:bg-white/30 text-white border border-white/20 rounded-xl backdrop-blur-sm transition-colors shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Dodaj własną
+              </button>
+            </div>
           </div>
-          <Button onClick={openAdd}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Dodaj własną
-          </Button>
         </div>
 
         {/* Filters */}

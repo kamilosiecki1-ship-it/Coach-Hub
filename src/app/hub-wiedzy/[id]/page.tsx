@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Loader2, Heart, NotebookPen, Check } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2, Heart, NotebookPen, Check, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/components/ui/use-toast";
@@ -145,58 +145,76 @@ export default function HubWiedzyDetailPage() {
   return (
     <AppLayout>
       <div className="p-8 max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4 min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => router.push("/hub-wiedzy")}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-semibold">{tool.name}</h1>
-                <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full px-2.5 py-1">
-                  {tool.category}
-                </span>
-                {isOwn ? (
-                  <span className="text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-full px-2.5 py-1">
-                    Własna
-                  </span>
-                ) : (
-                  <span className="text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-full px-2.5 py-1">
-                    Wbudowane
-                  </span>
+        {/* Back link */}
+        <button
+          onClick={() => router.push("/hub-wiedzy")}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors group"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          Hub wiedzy
+        </button>
+
+        {/* Premium gradient hero */}
+        <div className="relative overflow-hidden rounded-2xl header-gradient mb-8">
+          <div className="absolute -top-6 -right-6 w-44 h-44 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+          <div className="relative z-10 px-7 py-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl font-semibold text-white">{tool.name}</h1>
+                    <span className="text-xs font-medium bg-white/20 text-white/90 rounded-full px-2.5 py-0.5">
+                      {tool.category}
+                    </span>
+                    {isOwn ? (
+                      <span className="text-xs font-medium bg-white/15 text-white/80 rounded-full px-2.5 py-0.5">
+                        Własna
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium bg-white/10 border border-white/20 text-white/60 rounded-full px-2.5 py-0.5">
+                        Wbudowane
+                      </span>
+                    )}
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {tags.map((tag) => (
+                        <span key={tag} className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-xs text-white/80">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={toggleFavorite}
+                  className={cn(
+                    "flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-xl border transition-colors",
+                    isFavorite
+                      ? "bg-rose-500/20 border-rose-300/30 text-rose-200 hover:bg-rose-500/30"
+                      : "bg-white/15 border-white/20 text-white/80 hover:bg-white/25 hover:text-white"
+                  )}
+                >
+                  <Heart className={cn("w-3.5 h-3.5", isFavorite && "fill-rose-300 text-rose-300")} />
+                  {isFavorite ? "Ulubione" : "Ulubione"}
+                </button>
+                {isOwn && (
+                  <button
+                    onClick={openEdit}
+                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edytuj
+                  </button>
                 )}
               </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-400"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFavorite}
-              className={cn(isFavorite && "border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30")}
-            >
-              <Heart className={cn("w-4 h-4", isFavorite && "fill-rose-500 text-rose-500")} />
-              {isFavorite ? "Ulubione" : "Dodaj do ulubionych"}
-            </Button>
-            {isOwn && (
-              <Button variant="outline" size="sm" onClick={openEdit}>
-                <Pencil className="w-4 h-4" />
-                Edytuj
-              </Button>
-            )}
           </div>
         </div>
 
