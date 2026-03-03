@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import {
   Brain, LayoutDashboard, Users, Settings, LogOut, BookOpen, Sun, Moon, Shield,
-  Mail, Zap,
+  Mail, Zap, BookMarked,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 const navItems = [
   { href: "/pulpit", label: "Pulpit", icon: LayoutDashboard },
   { href: "/klienci", label: "Klienci", icon: Users },
+  { href: "/notatnik", label: "Notatnik", icon: BookMarked },
   { href: "/hub-wiedzy", label: "Hub wiedzy", icon: BookOpen },
   { href: "/ustawienia", label: "Ustawienia", icon: Settings },
 ];

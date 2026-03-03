@@ -166,3 +166,16 @@ model AiUsageEvent {
   endpoint     String
   createdAt    DateTime @default(now())
 }
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   Json
+  plainText String?
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
