@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("COACH")
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients         Client[]
+  knowledgeTools  KnowledgeTool[]
+  toolPreferences UserToolPreference[]
+}
+
+model Client {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  company         String?
+  role            String?
+  stage           String          @default("Wstęp")
+  generalNote     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  sessions        Session[]
+  retrospectives  Retrospective[]
+  chatThread      ChatThread?
+  finalReportMd   String?
+  closedAt        DateTime?
+}
+
+model Session {
+  id           String              @id @default(cuid())
+  clientId     String
+  client       Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  scheduledAt  DateTime
+  durationMin  Int?
+  status       String              @default("Zaplanowana")
+  notesMd      String              @default("")
+  summaryMd    String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  offboarding  SessionOffboarding?
+}
+
+model SessionOffboarding {
+  id                  String   @id @default(cuid())
+  sessionId           String   @unique
+  session             Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  date                DateTime?
+  sessionNumber       Int?
+  hours               Float?
+  clientLabel         String?
+  eventTopic          String?
+  learningExperience  String?
+  sessionGoals        String?
+  homework            String?
+  techniques          String?
+  keyInsightsClient   String?
+  gains               String?
+  homeworkDescription String?
+  feedback            String?
+  coachReflection     String?
+  focusAreas          String?
+  additionalNotes     String?
+  transcript          String?
+  generatedNoteMd     String   @default("")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Retrospective {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  reportMd  String
+  truncated Boolean  @default(false)
+}
+
+model ChatThread {
+  id        String        @id @default(cuid())
+  clientId  String        @unique
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id         String     @id @default(cuid())
+  threadId   String
+  thread     ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role       String
+  contentMd  String
+  createdAt  DateTime   @default(now())
+}
+
+model KnowledgeTool {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  tags        String   @default("")
+  description String
+  structure   String
+  example     String
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  userPreferences UserToolPreference[]
+}
+
+model UserToolPreference {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolId     String
+  tool       KnowledgeTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  isFavorite Boolean       @default(false)
+  note       String        @default("")
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([userId, toolId])
+}
+
+model Invite {
+  id             String    @id @default(cuid())
+  tokenHash      String    @unique
+  email          String?
+  role           String    @default("COACH")
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdByAdmin String
+  createdAt      DateTime  @default(now())
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AiUsageEvent {
+  id           String   @id @default(cuid())
+  userId       String
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+  endpoint     String
+  createdAt    DateTime @default(now())
+}
