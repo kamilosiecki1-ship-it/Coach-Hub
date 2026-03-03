@@ -8,7 +8,7 @@ import TiptapLink from "@tiptap/extension-link";
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Undo2, Redo2, Link as LinkIcon,
-  CheckCircle2, Loader2, Pin, PinOff, Trash2,
+  CheckCircle2, Loader2, Pin, PinOff, Trash2, BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -174,36 +174,46 @@ export function NoteEditor({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Note header — title + actions */}
-      <div className="px-6 pt-5 pb-3 border-b">
-        <div className="flex items-center justify-between gap-3 mb-1">
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Tytuł notatki"
-            className="flex-1 text-xl font-semibold bg-transparent border-none outline-none placeholder:text-muted-foreground/40 text-foreground min-w-0"
-          />
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={handlePinToggle}
-              title={pinned ? "Odepnij notatkę" : "Przypnij notatkę"}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                pinned
-                  ? "text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                  : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
-              )}
-            >
-              {pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={() => setDeleteOpen(true)}
-              title="Usuń notatkę"
-              className="p-1.5 rounded-lg text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-destructive transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+      {/* Note header — premium gradient */}
+      <div className="relative overflow-hidden shrink-0 header-gradient">
+        <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 -left-4 w-28 h-28 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+        <div className="relative z-10 px-5 pt-4 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/30 shadow-sm flex items-center justify-center shrink-0">
+              <BookMarked className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <input
+                type="text"
+                value={title}
+                onChange={handleTitleChange}
+                placeholder="Tytuł notatki"
+                className="w-full text-base font-semibold bg-transparent border-none outline-none placeholder:text-white/40 text-white min-w-0"
+              />
+              <p className="text-xs text-white/60 mt-0.5">Notatka osobista</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={handlePinToggle}
+                title={pinned ? "Odepnij notatkę" : "Przypnij notatkę"}
+                className={cn(
+                  "p-1.5 rounded-lg transition-colors",
+                  pinned
+                    ? "text-amber-300 hover:bg-white/10"
+                    : "text-white/60 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                {pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setDeleteOpen(true)}
+                title="Usuń notatkę"
+                className="p-1.5 rounded-lg text-white/60 hover:bg-white/10 hover:text-red-300 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
