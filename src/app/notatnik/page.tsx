@@ -153,36 +153,66 @@ export default function NotatnikPage() {
               </div>
             ) : (
               notes.map((note) => (
-                <button
+                <div
                   key={note.id}
-                  onClick={() => selectNote(note.id)}
                   className={cn(
-                    "w-full text-left px-4 py-3.5 border-b last:border-0 transition-colors",
+                    "group relative border-b last:border-0 transition-colors border-l-2",
                     selectedNote?.id === note.id
-                      ? "bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-600 dark:border-l-blue-400"
-                      : "hover:bg-white dark:hover:bg-slate-800/40 border-l-2 border-l-transparent"
+                      ? "bg-blue-50 dark:bg-blue-950/20 border-l-blue-600 dark:border-l-blue-400"
+                      : "hover:bg-white dark:hover:bg-slate-800/40 border-l-transparent"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-0.5">
-                    <span className={cn(
-                      "text-sm truncate",
-                      selectedNote?.id === note.id ? "font-semibold" : "font-medium"
-                    )}>
-                      {note.title}
-                    </span>
-                    {note.isPinned && (
-                      <Pin className="w-3 h-3 text-amber-500 shrink-0 mt-0.5 fill-amber-400" />
+                  <button
+                    onClick={() => selectNote(note.id)}
+                    className="w-full text-left px-4 py-3.5 pr-10"
+                  >
+                    <div className="flex items-start gap-2 mb-0.5">
+                      {note.isPinned && (
+                        <Pin className="w-3 h-3 text-amber-500 shrink-0 mt-0.5 fill-amber-400" />
+                      )}
+                      <span className={cn(
+                        "text-sm truncate",
+                        selectedNote?.id === note.id ? "font-semibold" : "font-medium"
+                      )}>
+                        {note.title}
+                      </span>
+                    </div>
+                    {note.plainText && (
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                        {note.plainText.slice(0, 140)}
+                      </p>
                     )}
-                  </div>
-                  {note.plainText && (
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                      {note.plainText.slice(0, 140)}
+                    <p className="text-[10px] text-muted-foreground/50 mt-1.5">
+                      {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true, locale: pl })}
                     </p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground/50 mt-1.5">
-                    {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true, locale: pl })}
-                  </p>
-                </button>
+                  </button>
+
+                  {/* Pin toggle — visible on hover or when pinned */}
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const newPinned = !note.isPinned;
+                      await fetch(`/api/notatnik/${note.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ isPinned: newPinned }),
+                      });
+                      handlePinToggle(note.id, newPinned);
+                      if (selectedNote?.id === note.id) {
+                        setSelectedNote((prev) => prev ? { ...prev, isPinned: newPinned } : prev);
+                      }
+                    }}
+                    title={note.isPinned ? "Odepnij" : "Przypnij"}
+                    className={cn(
+                      "absolute right-2 top-3.5 p-1.5 rounded-lg transition-all",
+                      note.isPinned
+                        ? "text-amber-500 opacity-100"
+                        : "text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-amber-500"
+                    )}
+                  >
+                    <Pin className={cn("w-3.5 h-3.5", note.isPinned && "fill-amber-400")} />
+                  </button>
+                </div>
               ))
             )}
           </div>
