@@ -322,9 +322,9 @@ export default function KlientPage() {
 
   return (
     <AppLayout>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden p-4 gap-4 panel-bg">
         {/* ── Left column ── */}
-        <div className="flex-1 min-w-0 overflow-y-auto p-6 space-y-4 panel-bg">
+        <div className="flex-1 min-w-0 overflow-y-auto p-6 space-y-4 bg-white dark:bg-card rounded-2xl shadow-sm">
 
           {/* Back */}
           <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -551,7 +551,7 @@ export default function KlientPage() {
         </div>
 
         {/* ── Right column: Mentor AI ── */}
-        <div className="w-[420px] shrink-0 flex flex-col border-l bg-white dark:bg-card overflow-hidden">
+        <div className="w-[420px] shrink-0 flex flex-col bg-white dark:bg-card rounded-2xl shadow-sm overflow-hidden">
 
           {/* Header + quick prompts — single blue gradient block */}
           <div className="relative overflow-hidden shrink-0 header-gradient">

@@ -40,12 +40,6 @@ interface Offboarding {
   generatedNoteMd: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  "Zaplanowana": "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300",
-  "Odbyta":      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
-  "Odwołana":    "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300",
-};
-
 export default function SesjaPage() {
   const params = useParams();
   const router = useRouter();
@@ -144,71 +138,85 @@ export default function SesjaPage() {
 
   if (!session) return null;
 
-  const statusColor = STATUS_COLORS[session.status] ?? "bg-slate-100 text-slate-600";
 
   return (
     <AppLayout>
       <div className="flex flex-col h-screen">
-        {/* Top bar */}
-        <div className="border-b bg-white dark:bg-card px-6 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <Button variant="ghost" size="sm" asChild className="-ml-2">
-              <Link href={`/klienci/${clientId}`}>
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                {session.client.name}
-              </Link>
-            </Button>
-            <Separator orientation="vertical" className="h-5" />
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
-              <span>{formatDateTime(session.scheduledAt)}</span>
-              {session.durationMin && (
-                <>
-                  <Clock className="w-3.5 h-3.5 ml-1 shrink-0" />
-                  <span>{session.durationMin} min</span>
-                </>
-              )}
-            </div>
-            <span className={cn("text-xs font-medium px-2.5 py-0.5 rounded-full", statusColor)}>
-              {session.status}
-            </span>
-          </div>
+        {/* Top bar — premium gradient */}
+        <div className="relative overflow-hidden shrink-0 header-gradient">
+          <div className="absolute -top-4 -right-4 w-36 h-36 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-3 w-28 h-28 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+          <div className="relative z-10 px-6 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <Link
+                  href={`/klienci/${clientId}`}
+                  className="flex items-center gap-1.5 text-white/80 hover:text-white transition-colors shrink-0 text-sm group"
+                >
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                  <span className="font-medium">{session.client.name}</span>
+                </Link>
+                <div className="w-px h-4 bg-white/30 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-white/80 min-w-0">
+                  <Calendar className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{formatDateTime(session.scheduledAt)}</span>
+                  {session.durationMin && (
+                    <>
+                      <Clock className="w-3.5 h-3.5 ml-1 shrink-0" />
+                      <span>{session.durationMin} min</span>
+                    </>
+                  )}
+                </div>
+                <span className={cn(
+                  "text-xs font-medium px-2.5 py-0.5 rounded-full border shrink-0",
+                  session.status === "Odbyta"
+                    ? "bg-emerald-400/20 text-emerald-200 border-emerald-300/30"
+                    : session.status === "Zaplanowana"
+                    ? "bg-white/20 text-white/90 border-white/20"
+                    : "bg-red-400/20 text-red-200 border-red-300/30"
+                )}>
+                  {session.status}
+                </span>
+              </div>
 
-          <div className="flex items-center gap-2">
-            {session.status !== "Odbyta" ? (
-              <Button size="sm" onClick={handleEndSession}>
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                Zakończ sesję
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setOffboardingOpen(true)}
-              >
-                <ClipboardList className="w-3.5 h-3.5 mr-1" />
-                {offboarding ? "Edytuj podsumowanie" : "Uzupełnij podsumowanie"}
-              </Button>
-            )}
-            <Button size="sm" variant="outline" asChild>
-              <Link href={`/klienci/${clientId}`}>
-                <Brain className="w-3.5 h-3.5 mr-1" />
-                Mentor AI klienta
-              </Link>
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => setDeleteConfirmOpen(true)}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                {session.status !== "Odbyta" ? (
+                  <button
+                    onClick={handleEndSession}
+                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-sm transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Zakończ sesję
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setOffboardingOpen(true)}
+                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/20 border border-white/20 text-white/90 hover:bg-white/30 rounded-xl transition-colors"
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" />
+                    {offboarding ? "Edytuj podsumowanie" : "Uzupełnij podsumowanie"}
+                  </button>
+                )}
+                <Link
+                  href={`/klienci/${clientId}`}
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors"
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  Mentor AI
+                </Link>
+                <button
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-red-300 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Session metadata bar */}
-        <div className="border-b bg-slate-50/60 dark:bg-slate-900/30 px-6 py-3 shrink-0">
+        <div className="border-b bg-white dark:bg-card px-6 py-3 shrink-0">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground">Data</Label>

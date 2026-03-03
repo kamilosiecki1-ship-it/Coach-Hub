@@ -205,7 +205,7 @@ export default function HubWiedzyPage() {
               </div>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1.5 h-9 px-4 text-sm font-medium bg-white/20 hover:bg-white/30 text-white border border-white/20 rounded-xl backdrop-blur-sm transition-colors shrink-0"
+                className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-sm transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 Dodaj własną
@@ -272,7 +272,7 @@ export default function HubWiedzyPage() {
               return (
                 <div
                   key={tool.id}
-                  className="bg-white dark:bg-card rounded-2xl border px-5 py-4 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
+                  className="bg-white dark:bg-card rounded-2xl border px-5 py-4 hover:bg-blue-50/60 dark:hover:bg-blue-950/10 hover:border-blue-200 dark:hover:border-blue-900 hover:shadow-md transition-all cursor-pointer"
                   onClick={() => router.push(`/hub-wiedzy/${tool.id}`)}
                 >
                   <div className="flex items-start justify-between gap-4">
