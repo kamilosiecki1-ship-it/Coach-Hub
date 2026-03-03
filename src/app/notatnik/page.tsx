@@ -96,16 +96,24 @@ export default function NotatnikPage() {
 
   return (
     <AppLayout>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden p-4 gap-4 bg-slate-100/60 dark:bg-background">
 
         {/* ── Left panel: notes list ── */}
-        <div className="w-80 shrink-0 border-r flex flex-col bg-slate-50/50 dark:bg-slate-900/30 overflow-hidden">
+        <div className="w-72 shrink-0 flex flex-col bg-white dark:bg-card rounded-2xl border overflow-hidden shadow-sm">
 
-          {/* Header */}
-          <div className="px-4 pt-5 pb-3 border-b bg-white dark:bg-card">
+          {/* Header — blue gradient */}
+          <div className="header-gradient px-4 pt-4 pb-4">
             <div className="flex items-center justify-between mb-3">
-              <h1 className="text-base font-semibold">Notatnik</h1>
-              <Button size="sm" onClick={createNote} disabled={creating} className="h-7 px-2.5 text-xs gap-1">
+              <div className="flex items-center gap-2">
+                <BookMarked className="w-4 h-4 text-white/80" />
+                <h1 className="text-sm font-semibold text-white">Notatnik</h1>
+              </div>
+              <Button
+                size="sm"
+                onClick={createNote}
+                disabled={creating}
+                className="h-7 px-2.5 text-xs gap-1 bg-white/20 hover:bg-white/30 text-white border-white/20 border backdrop-blur-sm"
+              >
                 {creating
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Plus className="w-3.5 h-3.5" />
@@ -114,12 +122,13 @@ export default function NotatnikPage() {
               </Button>
             </div>
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <Input
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/60 pointer-events-none" />
+              <input
+                type="text"
                 placeholder="Szukaj…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-sm"
+                className="w-full pl-8 pr-3 h-8 text-sm bg-white/20 border border-white/20 rounded-lg text-white placeholder:text-white/50 outline-none focus:bg-white/30 transition-colors"
               />
             </div>
           </div>
@@ -180,7 +189,7 @@ export default function NotatnikPage() {
         </div>
 
         {/* ── Right panel: editor ── */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-card">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-card rounded-2xl border shadow-sm">
           {loadingNote ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

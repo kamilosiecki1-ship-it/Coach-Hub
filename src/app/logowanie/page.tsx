@@ -11,8 +11,8 @@ import { Brain, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("coach@example.com");
-  const [password, setPassword] = useState("coach123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,9 +98,6 @@ function LoginForm() {
         </div>
       </form>
 
-      <p className="text-xs text-muted-foreground text-center mt-5">
-        Demo: coach@example.com / coach123
-      </p>
     </div>
   );
 }

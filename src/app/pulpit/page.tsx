@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, ArrowRight, ChevronRight } from "lucide-react";
+import { Calendar, Clock, Users, ArrowRight, ChevronRight, BookMarked, Pin } from "lucide-react";
 import Link from "next/link";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -31,7 +31,7 @@ export default async function PulpitPage() {
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
-  const [sessionsThisMonth, recentSessions, recentClients] = await Promise.all([
+  const [sessionsThisMonth, recentSessions, recentClients, recentNotes] = await Promise.all([
     prisma.session.findMany({
       where: { client: { userId }, scheduledAt: { gte: monthStart, lte: monthEnd }, status: "Odbyta" },
       select: { durationMin: true },
@@ -46,6 +46,12 @@ export default async function PulpitPage() {
       where: { userId },
       orderBy: { updatedAt: "desc" },
       take: 5,
+    }),
+    prisma.note.findMany({
+      where: { userId },
+      orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
+      take: 4,
+      select: { id: true, title: true, plainText: true, isPinned: true, updatedAt: true },
     }),
   ]);
 
@@ -179,6 +185,48 @@ export default async function PulpitPage() {
             </div>
           </div>
         </div>
+
+        {/* Recent notes */}
+        <div className="bg-white dark:bg-card rounded-2xl border mt-5">
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <BookMarked className="w-4 h-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Ostatnie notatki</h2>
+            </div>
+            <Link href="/notatnik" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+              Wszystkie notatki <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-border">
+            {recentNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground px-5 py-6">Brak notatek. Otwórz Notatnik i utwórz pierwszą.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                {recentNotes.map((note) => (
+                  <Link
+                    key={note.id}
+                    href="/notatnik"
+                    className="flex flex-col gap-1.5 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {note.isPinned && <Pin className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" />}
+                      <p className="text-sm font-medium truncate">{note.title}</p>
+                    </div>
+                    {note.plainText && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {note.plainText.slice(0, 80)}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground/50 mt-auto pt-1">
+                      {new Date(note.updatedAt).toLocaleDateString("pl-PL", { day: "numeric", month: "short" })}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </AppLayout>
   );
