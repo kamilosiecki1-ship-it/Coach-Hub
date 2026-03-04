@@ -14,7 +14,7 @@ import {
   ArrowLeft, Plus, Edit, Trash2, Loader2, Calendar, Clock,
   FileText, Building2, Briefcase, ChevronRight,
   AlertCircle, Send, ChevronDown, ChevronUp, Sparkles, Lock,
-  Gem, Target, Paperclip, Mic,
+  Gem, Target, Paperclip, Mic, FileDown,
 } from "lucide-react";
 import { MentorMark } from "@/components/ui/mentor-mark";
 import Link from "next/link";
@@ -76,10 +76,10 @@ const QUICK_PROMPTS = [
 
 function getQuickPromptMeta(label: string): { icon: React.ReactNode; textColorClass: string; hoverClass: string } {
   switch (label) {
-    case "Ogólna refleksja":       return { icon: <Gem className="w-3.5 h-3.5" />,      textColorClass: "text-[#224cc0]", hoverClass: "hover:bg-[#224cc0] hover:text-white" };
-    case "Feedback dla coacha":    return { icon: <Target className="w-3.5 h-3.5" />,   textColorClass: "text-[#D28B4C]", hoverClass: "hover:bg-[#D28B4C] hover:text-white" };
-    case "Pomóż zaplanować sesję": return { icon: <Sparkles className="w-3.5 h-3.5" />, textColorClass: "text-[#8A66BC]", hoverClass: "hover:bg-[#8A66BC] hover:text-white" };
-    default:                        return { icon: null, textColorClass: "text-slate-600", hoverClass: "hover:bg-slate-100 hover:text-slate-800" };
+    case "Ogólna refleksja":       return { icon: <Gem className="w-3.5 h-3.5" />,      textColorClass: "text-[#224cc0] dark:text-white/90", hoverClass: "hover:bg-[#224cc0] hover:text-white dark:hover:bg-white/20" };
+    case "Feedback dla coacha":    return { icon: <Target className="w-3.5 h-3.5" />,   textColorClass: "text-[#D28B4C] dark:text-white/90", hoverClass: "hover:bg-[#D28B4C] hover:text-white dark:hover:bg-white/20" };
+    case "Pomóż zaplanować sesję": return { icon: <Sparkles className="w-3.5 h-3.5" />, textColorClass: "text-[#8A66BC] dark:text-white/90", hoverClass: "hover:bg-[#8A66BC] hover:text-white dark:hover:bg-white/20" };
+    default:                        return { icon: null, textColorClass: "text-slate-600 dark:text-white/90", hoverClass: "hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-white/20" };
   }
 }
 
@@ -368,15 +368,23 @@ export default function KlientPage() {
                   {client.stage !== "Zakończony" && (
                     <button
                       onClick={() => setCloseProcessOpen(true)}
-                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/15 border border-white/30 text-white hover:bg-white/25 transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/15 border border-white/30 text-white hover:bg-emerald-400/30 transition-colors"
                     >
                       <Lock className="w-3.5 h-3.5" />
                       Zamknij
                     </button>
                   )}
+                  <a
+                    href={`/api/klienci/${clientId}/export`}
+                    download
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/15 border border-white/30 text-white hover:bg-blue-400/30 transition-colors"
+                  >
+                    <FileDown className="w-3.5 h-3.5" />
+                    Eksportuj PDF
+                  </a>
                   <button
                     onClick={() => setEditOpen(true)}
-                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/15 border border-white/30 text-white hover:bg-white/25 transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/15 border border-white/30 text-white hover:bg-orange-400/30 transition-colors"
                   >
                     <Edit className="w-3.5 h-3.5" />
                     Edytuj
@@ -594,7 +602,7 @@ export default function KlientPage() {
                     disabled={chatLoading || !aiEnabled}
                     className={cn(
                       "flex-1 flex flex-col items-center justify-center gap-1 py-2 px-1.5 rounded-xl text-xs font-medium",
-                      "bg-white/85 shadow-sm transition-all",
+                      "bg-white/85 dark:bg-white/10 dark:border dark:border-white/20 shadow-sm transition-all",
                       meta.textColorClass,
                       meta.hoverClass,
                       "disabled:opacity-50 disabled:cursor-not-allowed"
