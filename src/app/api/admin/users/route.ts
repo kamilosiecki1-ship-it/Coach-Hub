@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const [users, total, usageLast30, usageTotal] = await Promise.all([
+  const [users, total, usageLast30, usageTotal, lastActivity] = await Promise.all([
     prisma.user.findMany({
       where,
       select: {
@@ -57,6 +57,10 @@ export async function GET(req: NextRequest) {
       by: ["userId"],
       _sum: { totalTokens: true },
     }),
+    prisma.aiUsageEvent.groupBy({
+      by: ["userId"],
+      _max: { createdAt: true },
+    }),
   ]);
 
   const usage30Map = Object.fromEntries(
@@ -65,11 +69,15 @@ export async function GET(req: NextRequest) {
   const usageTotalMap = Object.fromEntries(
     usageTotal.map((u) => [u.userId, u._sum.totalTokens ?? 0])
   );
+  const lastActivityMap = Object.fromEntries(
+    lastActivity.map((u) => [u.userId, u._max.createdAt?.toISOString() ?? null])
+  );
 
   const enriched = users.map((u) => ({
     ...u,
     tokensLast30Days: usage30Map[u.id] ?? 0,
     tokensTotal: usageTotalMap[u.id] ?? 0,
+    lastActivityAt: lastActivityMap[u.id] ?? null,
   }));
 
   return NextResponse.json({ users: enriched, total, page, pageSize });

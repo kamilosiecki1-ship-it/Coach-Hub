@@ -20,6 +20,17 @@ function fmtTokens(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return n > 0 ? String(n) : "—";
 }
+
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  if (days === 0) return "dziś";
+  if (days === 1) return "wczoraj";
+  if (days < 7) return `${days} dni temu`;
+  if (days < 30) return `${Math.floor(days / 7)} tyg. temu`;
+  if (days < 365) return `${Math.floor(days / 30)} mies. temu`;
+  return `${Math.floor(days / 365)} lat temu`;
+}
 import { cn, formatDate } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,6 +45,7 @@ interface UserRow {
   _count: { clients: number };
   tokensLast30Days: number;
   tokensTotal: number;
+  lastActivityAt: string | null;
 }
 
 interface ListResponse {
@@ -324,12 +336,13 @@ export default function AdminUsersPage() {
         {/* Users table */}
         <div className="bg-white dark:bg-card rounded-2xl border overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto_auto_auto] gap-4 px-5 py-3 border-b bg-slate-50 dark:bg-slate-800/30 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto_auto_auto_auto] gap-4 px-5 py-3 border-b bg-slate-50 dark:bg-slate-800/30 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             <span>Imię</span>
             <span>Email</span>
             <span>Rola</span>
             <span>Status</span>
             <span>Dołączył/a</span>
+            <span>Ost. aktywność</span>
             <span className="text-right" title="Tokeny AI (30 dni)"><Zap className="w-3 h-3 inline mr-0.5" />30 dni</span>
             <span className="text-right" title="Tokeny AI łącznie"><Zap className="w-3 h-3 inline mr-0.5" />Łącznie</span>
             <span></span>
@@ -349,7 +362,7 @@ export default function AdminUsersPage() {
               {data.users.map((user) => (
                 <div
                   key={user.id}
-                  className="grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  className="grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto_auto_auto_auto] gap-4 items-center px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                 >
                   {/* Name */}
                   <div className="flex items-center gap-3 min-w-0">
@@ -375,6 +388,11 @@ export default function AdminUsersPage() {
 
                   {/* Date */}
                   <p className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(user.createdAt)}</p>
+
+                  {/* Last activity */}
+                  <p className="text-xs text-muted-foreground whitespace-nowrap" title={user.lastActivityAt ? new Date(user.lastActivityAt).toLocaleString("pl-PL") : undefined}>
+                    {timeAgo(user.lastActivityAt)}
+                  </p>
 
                   {/* Token usage */}
                   <p className="text-xs font-mono text-right text-muted-foreground">{fmtTokens(user.tokensLast30Days)}</p>
