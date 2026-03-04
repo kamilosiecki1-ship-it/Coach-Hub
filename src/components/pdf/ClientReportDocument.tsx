@@ -60,8 +60,8 @@ function stripMd(text: string | null | undefined): string {
   if (!text) return "";
   return text
     .replace(/^#{1,6}\s+(.+)$/gm, "$1")
-    .replace(/\*\*(.+?)\*\*/gs, "$1")
-    .replace(/\*(.+?)\*/gs, "$1")
+    .replace(/\*\*([\s\S]+?)\*\*/g, "$1")
+    .replace(/\*([\s\S]+?)\*/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\[(.+?)\]\(.+?\)/g, "$1")
     .replace(/^[-*+]\s+/gm, "- ")

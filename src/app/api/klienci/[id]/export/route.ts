@@ -83,8 +83,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   let buffer: Buffer;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     buffer = await renderToBuffer(
-      React.createElement(ClientReportDocument, { client: data, generatedAt })
+      React.createElement(ClientReportDocument, { client: data, generatedAt }) as any
     );
   } catch (err) {
     console.error("[export PDF] renderToBuffer failed:", err);
@@ -95,7 +96,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const safeName = client.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
   const filename = `coach-hub_${safeName}_dokumentacja.pdf`;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(Uint8Array.from(buffer), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
