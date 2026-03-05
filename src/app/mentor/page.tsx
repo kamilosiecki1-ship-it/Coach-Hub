@@ -5,7 +5,7 @@ import { isAiConfigured } from "@/lib/aiService";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlobalMentorView } from "@/components/mentor/GlobalMentorView";
 
-export const metadata = { title: "Mentor AI — Coach Hub" };
+export const metadata = { title: "Mentor AI — SessionLab" };
 
 export default async function MentorPage({
   searchParams,

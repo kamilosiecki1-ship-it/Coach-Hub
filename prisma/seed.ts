@@ -1565,7 +1565,7 @@ Sesja 4 potwierdziła trwałość zmiany – Marek utrzymał nowe wzorce w sytua
 
 ---
 
-*Retrospektywa wygenerowana przez Coach Hub – Mentor AI.*
+*Retrospektywa wygenerowana przez SessionLab – Mentor AI.*
 `,
     },
   });

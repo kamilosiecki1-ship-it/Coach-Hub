@@ -324,7 +324,7 @@ export interface ClientReportData {
 // ── Fixed header / footer (appear on every content page) ─────────────────────
 const PageHeader = ({ name }: { name: string }) => (
   <View style={s.pageHeader} fixed>
-    <Text style={s.pageHeaderBrand}>COACH HUB  ·  DOKUMENTACJA</Text>
+    <Text style={s.pageHeaderBrand}>SESSIONLAB  ·  DOKUMENTACJA</Text>
     <Text style={s.pageHeaderClient}>{name}</Text>
   </View>
 );
@@ -390,7 +390,7 @@ export function ClientReportDocument({
           height: COVER_H, paddingHorizontal: 50, paddingTop: 48,
         }}>
           <Text style={{ fontSize: 7, fontFamily: F, color: "rgba(255,255,255,0.45)", letterSpacing: 2, marginBottom: 20 }}>
-            COACH HUB  ·  DOKUMENTACJA PROCESU COACHINGOWEGO
+            SESSIONLAB  ·  DOKUMENTACJA PROCESU COACHINGOWEGO
           </Text>
           <Text style={{ fontSize: 28, fontFamily: F, fontWeight: 700, color: C.white, lineHeight: 1.15, marginBottom: 8 }}>
             {client.name}
@@ -462,7 +462,7 @@ export function ClientReportDocument({
 
         {/* Cover footer */}
         <View style={[s.pageFooter]}>
-          <Text style={s.pageFooterLeft}>Coach Hub  ·  Dokumentacja Procesu Coachingowego</Text>
+          <Text style={s.pageFooterLeft}>SessionLab  ·  Dokumentacja Procesu Coachingowego</Text>
           <Text style={s.pageFooterRight}>{generatedAt}</Text>
         </View>
       </Page>

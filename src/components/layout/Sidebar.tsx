@@ -60,7 +60,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm leading-none text-foreground">Coach Hub</p>
+              <p className="font-semibold text-sm leading-none text-foreground">SessionLab</p>
               <p className="text-xs text-slate-400 mt-0.5">AI Superwizor</p>
             </div>
             <button

@@ -9,7 +9,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Coach Hub – AI Superwizor Coachingu",
+  title: "SessionLab – AI Superwizor Coachingu",
   description: "Narzędzie AI dla coachów – notatki, refleksja, superwizja.",
 };
 

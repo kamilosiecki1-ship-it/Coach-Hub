@@ -110,7 +110,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4 shadow-lg">
             <Brain className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">Coach Hub</h1>
+          <h1 className="text-2xl font-semibold text-foreground">SessionLab</h1>
           <p className="text-muted-foreground text-sm mt-1">AI Superwizor Coachingu</p>
         </div>
 

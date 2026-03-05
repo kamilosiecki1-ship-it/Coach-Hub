@@ -35,7 +35,7 @@ export default function UstawieniaPage() {
       <div className="p-8 max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold">Ustawienia</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Konfiguracja aplikacji Coach Hub.</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Konfiguracja aplikacji SessionLab.</p>
         </div>
 
         <div className="space-y-4">
@@ -110,7 +110,7 @@ export default function UstawieniaPage() {
           <div className="bg-white dark:bg-card rounded-2xl border p-6">
             <h2 className="text-sm font-semibold mb-3">O aplikacji</h2>
             <div className="text-sm text-muted-foreground space-y-1">
-              <p><strong className="text-foreground">Coach Hub</strong> – AI Superwizor Coachingu</p>
+              <p><strong className="text-foreground">SessionLab</strong> – AI Superwizor Coachingu</p>
               <p>Wersja: 1.0.0 MVP</p>
               <p>Narzędzie wspierające refleksję i superwizję coachingową zgodnie ze standardami ICF i EMCC.</p>
             </div>

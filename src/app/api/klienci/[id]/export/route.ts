@@ -96,7 +96,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 
   const safeName = client.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-  const filename = `coach-hub_${safeName}_dokumentacja.pdf`;
+  const filename = `sessionlab_${safeName}_dokumentacja.pdf`;
 
   return new NextResponse(Uint8Array.from(buffer), {
     status: 200,
