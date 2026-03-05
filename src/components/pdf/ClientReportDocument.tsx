@@ -71,6 +71,37 @@ function stripMd(text: string | null | undefined): string {
     .trim();
 }
 
+// Render offboarding markdown with bold headings and bullet points
+function renderOffboardingMd(text: string | null | undefined): React.ReactElement[] {
+  if (!text) return [];
+  return text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line, i) => {
+      const headingMatch = line.match(/^#{1,6}\s+(.+)$/);
+      if (headingMatch) {
+        return (
+          <Text key={i} style={[s.body, { fontWeight: 700, color: C.slate900, marginTop: 7, marginBottom: 2 }]}>
+            {headingMatch[1]}
+          </Text>
+        );
+      }
+      const bulletMatch = line.match(/^[-*+]\s+(.+)$/);
+      if (bulletMatch) {
+        return (
+          <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 2 }}>
+            <Text style={[s.bodySmall, { marginRight: 5, marginTop: 1 }]}>{"\u2022"}</Text>
+            <Text style={[s.body, { flex: 1 }]}>{bulletMatch[1]}</Text>
+          </View>
+        );
+      }
+      if (line.trim() === "") {
+        return <View key={i} style={{ height: 3 }} />;
+      }
+      return <Text key={i} style={[s.body, { marginBottom: 1 }]}>{line.trim()}</Text>;
+    });
+}
+
 function statusColors(status: string) {
   switch (status) {
     case "Odbyta":      return { color: C.emerald700, bg: C.emerald100, border: C.emerald200 };
@@ -109,7 +140,7 @@ const s = StyleSheet.create({
   pageFooterRight: { color: "rgba(255,255,255,0.40)", fontSize: 7, fontFamily: F },
 
   // Content area
-  content: { paddingHorizontal: 40, paddingTop: 18 },
+  content: { paddingHorizontal: 40, paddingTop: 8 },
 
   // Section heading
   sectionRow:   { flexDirection: "row", alignItems: "center", marginTop: 20, marginBottom: 10 },
@@ -169,6 +200,97 @@ const s = StyleSheet.create({
   },
 });
 
+// ── JSON retrospective types ───────────────────────────────────────────────────
+interface RetroSectionItem { heading: string; content: string[] }
+interface RetroSection {
+  id: string; title: string;
+  toneColor: "blue" | "green" | "purple" | "orange" | "amber";
+  items: RetroSectionItem[];
+}
+export interface RetrospectiveReportV1 {
+  title: string;
+  summary: { oneLiner: string; processSnapshot: string[] };
+  sections: RetroSection[];
+  reflectionQuestions: string[];
+  dataQuality: { truncated: boolean; coverageNote: string };
+}
+
+const RETRO_PDF_TONE: Record<string, { bar: string; title: string; bg: string; border: string; dot: string }> = {
+  blue:   { bar: C.blue600,  title: C.blue700,    bg: C.blue50,    border: C.blue100,   dot: C.blue600   },
+  green:  { bar: "#059669",  title: "#047857",    bg: "#F0FDF4",   border: "#BBF7D0",   dot: "#059669"   },
+  purple: { bar: "#7C3AED",  title: "#6D28D9",    bg: "#F5F3FF",   border: "#DDD6FE",   dot: "#7C3AED"   },
+  orange: { bar: "#EA580C",  title: "#C2410C",    bg: "#FFF7ED",   border: "#FED7AA",   dot: "#EA580C"   },
+  amber:  { bar: C.amber600, title: C.amber600,   bg: C.amber50,   border: C.amber200,  dot: C.amber600  },
+};
+
+function RetroJsonPdfReport({ report }: { report: RetrospectiveReportV1 }) {
+  return (
+    <View>
+      {/* Summary */}
+      <View style={[s.cardBlue, { marginBottom: 8 }]}>
+        <Text style={[s.label, { marginBottom: 4 }]}>Podsumowanie procesu</Text>
+        <Text style={s.body}>{report.summary?.oneLiner}</Text>
+        {(report.summary?.processSnapshot?.length ?? 0) > 0 && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
+            {report.summary.processSnapshot.map((item, i) => (
+              <Text key={i} style={[s.badge, {
+                color: C.blue700, backgroundColor: C.blue100, borderColor: C.blue200,
+                marginRight: 6, marginBottom: 4,
+              }]}>
+                {item}
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Sections */}
+      {report.sections?.map((section) => {
+        const tc = RETRO_PDF_TONE[section.toneColor] ?? RETRO_PDF_TONE.blue;
+        return (
+          <View key={section.id} style={[s.card, { backgroundColor: tc.bg, borderColor: tc.border, marginBottom: 8 }]}>
+            <View style={[s.row, { marginBottom: 8 }]}>
+              <View style={{ width: 3, height: 10, backgroundColor: tc.bar, borderRadius: 2, marginRight: 6 }} />
+              <Text style={[s.h3, { color: tc.title, marginBottom: 0 }]}>{section.title}</Text>
+            </View>
+            {section.items?.map((item, idx) => (
+              <View key={idx} style={{ marginBottom: idx < (section.items?.length ?? 0) - 1 ? 8 : 0 }}>
+                <Text style={[s.label, { marginBottom: 3 }]}>{item.heading}</Text>
+                {item.content?.map((line, j) => (
+                  <View key={j} style={[s.row, { alignItems: "flex-start", marginBottom: 2 }]}>
+                    <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: tc.dot, marginRight: 6, marginTop: 4 }} />
+                    <Text style={[s.body, { flex: 1 }]}>{line}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        );
+      })}
+
+      {/* Reflection questions */}
+      {(report.reflectionQuestions?.length ?? 0) > 0 && (
+        <View style={[s.card, { marginBottom: 8 }]}>
+          <Text style={[s.h3, { marginBottom: 8 }]}>Pytania do refleksji</Text>
+          {report.reflectionQuestions.map((q, i) => (
+            <View key={i} style={[s.row, { alignItems: "flex-start", marginBottom: 5 }]}>
+              <Text style={[s.bodySmall, { width: 16, color: C.slate500, fontWeight: 700 }]}>{i + 1}.</Text>
+              <Text style={[s.body, { flex: 1 }]}>{q}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Coverage note */}
+      {report.dataQuality?.coverageNote && (
+        <Text style={[s.bodySmall, { color: C.slate300, marginTop: 2 }]}>
+          {report.dataQuality.coverageNote}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface SessionData {
   id: string;
@@ -181,7 +303,8 @@ export interface SessionData {
 export interface RetrospectiveData {
   id: string;
   createdAt: string;
-  reportMd: string;
+  reportMd: string | null;
+  reportJson?: RetrospectiveReportV1 | null;
   truncated: boolean;
 }
 export interface ClientReportData {
@@ -349,6 +472,8 @@ export function ClientReportDocument({
       ════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={s.contentPage}>
         <PageHeader name={client.name} />
+        {/* Fixed spacer — repeats after the header on every physical page, creating breathing room */}
+        <View style={{ height: 10 }} fixed />
         <PageFooter name={client.name} />
 
         <View style={s.content}>
@@ -389,6 +514,36 @@ export function ClientReportDocument({
             </>
           )}
 
+          {/* ── Latest retrospective (before sessions) ── */}
+          {client.retrospectives.length > 0 && (() => {
+            const r = client.retrospectives[0];
+            return (
+              <>
+                <View style={s.sectionRow}>
+                  <View style={s.sectionBar} />
+                  <Text style={s.sectionTitle}>Retrospektywa procesu</Text>
+                  <Text style={[s.bodySmall, { marginLeft: 8 }]}>{fmtShortDate(r.createdAt)}</Text>
+                  {r.truncated && (
+                    <Text style={[s.badge, {
+                      marginLeft: 8,
+                      color: C.amber600, backgroundColor: C.amber50, borderColor: C.amber200,
+                    }]}>
+                      Skrócona
+                    </Text>
+                  )}
+                </View>
+                {r.reportJson
+                  ? <RetroJsonPdfReport report={r.reportJson} />
+                  : (
+                    <View style={s.card}>
+                      <Text style={s.body}>{r.reportMd ? stripMd(r.reportMd) : "(Brak treści raportu)"}</Text>
+                    </View>
+                  )
+                }
+              </>
+            );
+          })()}
+
           {/* ── Sessions ── */}
           <View style={s.sectionRow}>
             <View style={s.sectionBar} />
@@ -399,14 +554,13 @@ export function ClientReportDocument({
             <Text style={[s.body, { color: C.slate500 }]}>Brak sesji.</Text>
           ) : (
             client.sessions.map((session, idx) => {
-              const sc        = statusColors(session.status);
-              const hasNotes  = (session.notesMd ?? "").trim().length > 0;
+              const sc         = statusColors(session.status);
               const hasSummary = (session.offboarding?.generatedNoteMd ?? "").trim().length > 0;
 
               return (
                 <View key={session.id} style={s.card}>
                   {/* Header row */}
-                  <View style={[s.sb, { marginBottom: (hasNotes || hasSummary) ? 10 : 0 }]}>
+                  <View style={[s.sb, { marginBottom: hasSummary ? 10 : 0 }]}>
                     <View style={[s.row, { flexWrap: "wrap", flex: 1, marginRight: 8 }]}>
                       <Text style={{
                         fontSize: 7, fontFamily: F, fontWeight: 700,
@@ -429,59 +583,23 @@ export function ClientReportDocument({
                     </Text>
                   </View>
 
-                  {hasNotes && (
-                    <View>
-                      <Text style={s.label}>Notatki coacha</Text>
-                      <Text style={s.body}>{stripMd(session.notesMd)}</Text>
-                    </View>
-                  )}
-
                   {hasSummary && (
-                    <View style={[s.summaryBox, { marginTop: hasNotes ? 10 : 0 }]}>
+                    <View style={s.summaryBox}>
                       <Text style={[s.label, { color: C.blue700, marginBottom: 4 }]}>
                         Podsumowanie po sesji
                       </Text>
-                      <Text style={s.body}>{stripMd(session.offboarding!.generatedNoteMd)}</Text>
+                      {renderOffboardingMd(session.offboarding!.generatedNoteMd)}
                     </View>
                   )}
 
-                  {!hasNotes && !hasSummary && (
+                  {!hasSummary && (
                     <Text style={[s.bodySmall, { color: C.slate300 }]}>
-                      Brak notatek dla tej sesji.
+                      Brak podsumowania dla tej sesji.
                     </Text>
                   )}
                 </View>
               );
             })
-          )}
-
-          {/* ── Retrospectives ── */}
-          {client.retrospectives.length > 0 && (
-            <>
-              <View style={s.sectionRow}>
-                <View style={s.sectionBar} />
-                <Text style={s.sectionTitle}>Retrospektywy ({client.retrospectives.length})</Text>
-              </View>
-              {client.retrospectives.map((r, idx) => (
-                <View key={r.id} style={s.card}>
-                  <View style={[s.row, { marginBottom: 8 }]}>
-                    <Text style={[s.h3, { marginBottom: 0, marginRight: 8 }]}>
-                      Retrospektywa {idx + 1}
-                    </Text>
-                    <Text style={s.bodySmall}>{fmtShortDate(r.createdAt)}</Text>
-                    {r.truncated && (
-                      <Text style={[s.badge, {
-                        marginLeft: 8,
-                        color: C.amber600, backgroundColor: C.amber50, borderColor: C.amber200,
-                      }]}>
-                        Skrócona
-                      </Text>
-                    )}
-                  </View>
-                  <Text style={s.body}>{stripMd(r.reportMd)}</Text>
-                </View>
-              ))}
-            </>
           )}
 
           {/* ── Final report ── */}

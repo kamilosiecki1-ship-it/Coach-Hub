@@ -94,6 +94,8 @@ export interface SessionForContext {
   durationMin?: number | null;
   status: string;
   notesMd: string;
+  planMd?: string | null;
+  scratchpadMd?: string | null;
   summaryMd?: string | null;
   offboarding?: { generatedNoteMd: string; transcript?: string | null } | null;
 }
@@ -306,7 +308,7 @@ Pisz profesjonalnie i konkretnie. Używaj Markdown. Język: wyłącznie polski. 
   return { report, truncated };
 }
 
-// ─── Retrospective ────────────────────────────────────────────────────────────
+// ─── Retrospective (legacy markdown) ─────────────────────────────────────────
 
 export interface RetrospectiveContext {
   clientName: string;
@@ -351,5 +353,253 @@ export async function generateRetrospective(
   logUsage(response, userId, "retrospective");
   const report =
     response.choices[0]?.message?.content ?? "Nie udało się wygenerować retrospektywy.";
+  return { report, truncated };
+}
+
+// ─── Retrospective V2 — structured JSON ──────────────────────────────────────
+
+export interface RetroSectionItem {
+  heading: string;
+  content: string[];
+}
+
+export interface RetroSection {
+  id: string;
+  title: string;
+  toneColor: "blue" | "green" | "purple" | "orange" | "amber";
+  items: RetroSectionItem[];
+}
+
+export interface RetrospectiveReportV1 {
+  title: string;
+  summary: {
+    oneLiner: string;
+    processSnapshot: string[];
+  };
+  sections: RetroSection[];
+  reflectionQuestions: string[];
+  dataQuality: {
+    truncated: boolean;
+    coverageNote: string;
+  };
+}
+
+export interface RetroSessionInput {
+  sessionNumber: number;
+  scheduledAt: Date | string;
+  durationMin?: number | null;
+  status: string;
+  notesMd?: string | null;
+  planMd?: string | null;
+  scratchpadMd?: string | null;
+  summaryMd?: string | null;
+  offboarding?: { generatedNoteMd?: string | null; transcript?: string | null } | null;
+}
+
+export interface RetroContextV2 {
+  clientName: string;
+  clientRole?: string | null;
+  clientCompany?: string | null;
+  clientStage: string;
+  generalNote?: string | null;
+  totalSessionCount: number;
+  completedSessionCount: number;
+  sessions: RetroSessionInput[];
+}
+
+const RETRO_MAX_CHARS = 48000;
+
+function buildRetroContextBlock(ctx: RetroContextV2): { contextBlock: string; truncated: boolean; coverageNote: string } {
+  const { clientName, clientRole, clientCompany, clientStage, generalNote, sessions,
+    totalSessionCount, completedSessionCount } = ctx;
+
+  const headerLines = [
+    `## Klient`,
+    `- **Imię/Nazwa:** ${clientName}`,
+    clientRole ? `- **Rola:** ${clientRole}` : null,
+    clientCompany ? `- **Firma:** ${clientCompany}` : null,
+    `- **Etap procesu:** ${clientStage}`,
+    `- **Sesje łącznie:** ${totalSessionCount} (odbytych: ${completedSessionCount})`,
+    generalNote ? `- **Notatka ogólna:** ${generalNote}` : null,
+  ].filter(Boolean).join("\n");
+
+  // Sort newest first
+  const sorted = [...sessions].sort(
+    (a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()
+  );
+
+  // Build session blocks WITHOUT transcripts first
+  const sessionBlocksNoTranscript = sorted.map((s, i) => {
+    const date = new Date(s.scheduledAt).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+    const label = i === 0 ? " — NAJNOWSZA" : "";
+    const lines: string[] = [
+      `### Sesja ${s.sessionNumber} (${date})${label}`,
+      `**Status:** ${s.status}${s.durationMin ? ` | ${s.durationMin} min` : ""}`,
+    ];
+
+    if (s.planMd?.trim()) lines.push(`\n**Plan sesji:**\n${s.planMd.trim()}`);
+    if (s.scratchpadMd?.trim()) lines.push(`\n**Brudnopis:**\n${s.scratchpadMd.trim()}`);
+    if (s.summaryMd?.trim()) lines.push(`\n**Podsumowanie:** ${s.summaryMd.trim()}`);
+    else if (s.notesMd?.trim() && !s.planMd?.trim() && !s.scratchpadMd?.trim()) {
+      lines.push(`\n**Notatki:** ${s.notesMd.trim().slice(0, 600)}${s.notesMd.trim().length > 600 ? "…" : ""}`);
+    }
+    if (s.offboarding?.generatedNoteMd?.trim()) {
+      lines.push(`\n**Notatka offboarding:**\n${s.offboarding.generatedNoteMd.trim()}`);
+    }
+    return lines.join("\n");
+  });
+
+  // Check total size without transcripts
+  let sessionsBlock = "";
+  let sessionsIncluded = 0;
+  let charsUsed = headerLines.length;
+
+  for (let i = 0; i < sessionBlocksNoTranscript.length; i++) {
+    const blockText = sessionBlocksNoTranscript[i];
+    const wouldUse = charsUsed + blockText.length + 10;
+    // Always include at least 2 sessions
+    if (i >= 2 && wouldUse > RETRO_MAX_CHARS) break;
+    sessionsBlock += (sessionsBlock ? "\n\n---\n\n" : "") + blockText;
+    charsUsed += blockText.length;
+    sessionsIncluded++;
+  }
+
+  // If we still have budget, add transcripts for newest 1-2 sessions
+  const budgetLeft = RETRO_MAX_CHARS - charsUsed;
+  if (budgetLeft > 500 && sorted[0]?.offboarding?.transcript?.trim()) {
+    const transcript = sorted[0].offboarding!.transcript!.trim();
+    const sliced = transcript.slice(0, Math.min(budgetLeft - 100, 4000));
+    sessionsBlock = sessionsBlock.replace(
+      sessionBlocksNoTranscript[0],
+      sessionBlocksNoTranscript[0] + `\n\n**Transkrypcja:**\n${sliced}${sliced.length < transcript.length ? "\n[…skrócona]" : ""}`
+    );
+  }
+
+  const truncated = sessionsIncluded < sorted.length;
+  const coverageNote = truncated
+    ? `Oparty o ${sessionsIncluded} z ${totalSessionCount} sesji (od najnowszej) — starsze pominięte ze względu na długość kontekstu.`
+    : `Oparty o ${sessionsIncluded} ${sessionsIncluded === 1 ? "sesję" : sessionsIncluded < 5 ? "sesje" : "sesji"}.`;
+
+  const contextBlock = `${headerLines}\n\n## Sesje (od najnowszej)\n\n${sessionsBlock}`;
+  return { contextBlock, truncated, coverageNote };
+}
+
+const RETRO_SYSTEM_PROMPT = `Jesteś doświadczonym superwizorem coachingowym. Przygotowujesz raport superwizyjny dla coacha — nie dla klienta.
+
+Twój ton jest profesjonalny, mentoringowy i konstruktywny. Nie oceniasz — observujesz i wspierasz refleksję.
+Skupiasz się na coachu: jego/jej kompetencjach, wzorcach pracy, obserwacjach z procesu.
+Pracujesz w standardach ICF i EMCC.
+Odpowiadasz WYŁĄCZNIE po polsku.
+Zwracasz WYŁĄCZNIE poprawny JSON — bez markdown, bez code fences, bez jakiegokolwiek dodatkowego tekstu.`;
+
+export async function generateRetrospectiveJSON(
+  ctx: RetroContextV2,
+  userId?: string
+): Promise<{ report: RetrospectiveReportV1; truncated: boolean }> {
+  const openai = getClient();
+
+  const { contextBlock, truncated, coverageNote } = buildRetroContextBlock(ctx);
+
+  const userPrompt = `Przeanalizuj poniższy proces coachingowy i przygotuj retrospektywę superwizyjną dla coacha w formacie JSON.
+
+${contextBlock}
+
+---
+
+Wygeneruj odpowiedź jako JSON zgodny DOKŁADNIE z tym schematem (bez żadnych modyfikacji struktury):
+
+{
+  "title": "Retrospektywa procesu — ${ctx.clientName}",
+  "summary": {
+    "oneLiner": "Jedno zdanie syntetyzujące cały proces.",
+    "processSnapshot": ["Obserwacja 1", "Obserwacja 2", "Obserwacja 3"]
+  },
+  "sections": [
+    {
+      "id": "themes",
+      "title": "Kluczowe tematy i wątki",
+      "toneColor": "blue",
+      "items": [
+        { "heading": "Nazwa tematu", "content": ["Opis...","Jak ewoluował..."] }
+      ]
+    },
+    {
+      "id": "progress",
+      "title": "Postęp i zmiany klienta",
+      "toneColor": "green",
+      "items": [
+        { "heading": "Obszar zmiany", "content": ["Co się zmieniło...","Przykład z sesji..."] }
+      ]
+    },
+    {
+      "id": "coach-observations",
+      "title": "Obserwacje superwizyjne dla coacha",
+      "toneColor": "purple",
+      "items": [
+        { "heading": "Wzorzec lub kompetencja", "content": ["Obserwacja...","Propozycja..."] }
+      ]
+    },
+    {
+      "id": "next-steps",
+      "title": "Proponowane kierunki kolejnych sesji",
+      "toneColor": "orange",
+      "items": [
+        { "heading": "Kierunek", "content": ["Co warto eksplorować..."] }
+      ]
+    }
+  ],
+  "reflectionQuestions": [
+    "Pytanie superwizyjne 1?",
+    "Pytanie superwizyjne 2?",
+    "Pytanie superwizyjne 3?",
+    "Pytanie superwizyjne 4?",
+    "Pytanie superwizyjne 5?"
+  ],
+  "dataQuality": {
+    "truncated": ${truncated},
+    "coverageNote": "${coverageNote}"
+  }
+}
+
+Zasady:
+- Każda sekcja: 2–4 items, każdy item.content: 2–3 zdania
+- reflectionQuestions: 3–5 pytań superwizyjnych, skierowanych do coacha
+- processSnapshot: 3–5 zwięzłych faktów/obserwacji o procesie
+- Syntetyzuj — nie kopiuj notatek dosłownie
+- Skup się na COACHU (jego procesie, wzorcach, kompetencjach ICF), nie na kliencie
+- Zwróć TYLKO JSON`;
+
+  let response;
+  if (isReasoningModel(MODEL)) {
+    response = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: "user", content: `[Instrukcja systemowa]\n${RETRO_SYSTEM_PROMPT}\n\n[Zadanie]\n${userPrompt}` },
+      ],
+      max_completion_tokens: 3000,
+    });
+  } else {
+    response = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: "system", content: RETRO_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.6,
+      max_tokens: 3000,
+      response_format: { type: "json_object" },
+    });
+  }
+
+  logUsage(response, userId, "retrospective_v2");
+
+  const raw = response.choices[0]?.message?.content ?? "{}";
+  let report: RetrospectiveReportV1;
+  try {
+    report = JSON.parse(raw) as RetrospectiveReportV1;
+  } catch {
+    throw new Error(`AI zwróciło niepoprawny JSON: ${raw.slice(0, 200)}`);
+  }
+
   return { report, truncated };
 }

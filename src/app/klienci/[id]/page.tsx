@@ -15,7 +15,7 @@ import {
   ArrowLeft, Plus, Edit, Trash2, Loader2, Calendar, Clock,
   Building2, Briefcase, ChevronRight,
   ChevronDown, ChevronUp, Sparkles, Lock,
-  FileDown, TriangleAlert,
+  FileDown, TriangleAlert, AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatDate, formatDateTime, STAGE_OPTIONS } from "@/lib/utils";
@@ -30,11 +30,27 @@ interface Session {
   summaryMd?: string | null;
 }
 
+interface RetroSectionItem { heading: string; content: string[] }
+interface RetroSection {
+  id: string; title: string;
+  toneColor: "blue" | "green" | "purple" | "orange" | "amber";
+  items: RetroSectionItem[];
+}
+interface RetrospectiveReportV1 {
+  title: string;
+  summary: { oneLiner: string; processSnapshot: string[] };
+  sections: RetroSection[];
+  reflectionQuestions: string[];
+  dataQuality: { truncated: boolean; coverageNote: string };
+}
+
 interface Retrospective {
   id: string;
   createdAt: string;
-  reportMd: string;
+  reportJson?: RetrospectiveReportV1 | null;
+  reportMd?: string | null;  // legacy
   truncated: boolean;
+  version?: string;
 }
 
 interface Client {
@@ -73,6 +89,83 @@ const STATUS_COLORS: Record<string, string> = {
   "Odwołana":    "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300",
 };
 
+// ─── Retrospective JSON renderer ─────────────────────────────────────────────
+
+const RETRO_TONE: Record<string, { bg: string; border: string; title: string; dot: string }> = {
+  blue:   { bg: "bg-blue-50/50 dark:bg-blue-950/10",    border: "border-blue-200/60 dark:border-blue-800/30",   title: "text-blue-700 dark:text-blue-300",     dot: "bg-blue-400" },
+  green:  { bg: "bg-emerald-50/50 dark:bg-emerald-950/10", border: "border-emerald-200/60 dark:border-emerald-800/30", title: "text-emerald-700 dark:text-emerald-300", dot: "bg-emerald-400" },
+  purple: { bg: "bg-violet-50/50 dark:bg-violet-950/10", border: "border-violet-200/60 dark:border-violet-800/30", title: "text-violet-700 dark:text-violet-300",   dot: "bg-violet-400" },
+  orange: { bg: "bg-orange-50/50 dark:bg-orange-950/10", border: "border-orange-200/60 dark:border-orange-800/30", title: "text-orange-700 dark:text-orange-300",   dot: "bg-orange-400" },
+  amber:  { bg: "bg-amber-50/50 dark:bg-amber-950/10",   border: "border-amber-200/60 dark:border-amber-800/30",  title: "text-amber-700 dark:text-amber-300",    dot: "bg-amber-400" },
+};
+
+function RetrospectiveReport({ report }: { report: RetrospectiveReportV1 }) {
+  return (
+    <div className="space-y-4">
+      {/* Summary pill row */}
+      <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+        <p className="text-sm font-medium text-foreground leading-relaxed">{report.summary?.oneLiner}</p>
+        {report.summary?.processSnapshot?.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {report.summary.processSnapshot.map((item, i) => (
+              <span key={i} className="text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2.5 py-1 text-slate-600 dark:text-slate-400">
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sections */}
+      {report.sections?.map((section) => {
+        const colors = RETRO_TONE[section.toneColor] ?? RETRO_TONE.blue;
+        return (
+          <div key={section.id} className={cn("rounded-xl border p-4", colors.bg, colors.border)}>
+            <h4 className={cn("text-sm font-semibold mb-3", colors.title)}>{section.title}</h4>
+            <div className="space-y-3">
+              {section.items?.map((item, idx) => (
+                <div key={idx}>
+                  <p className="text-sm font-semibold text-foreground mb-1">{item.heading}</p>
+                  <ul className="space-y-1.5">
+                    {item.content?.map((line, j) => (
+                      <li key={j} className="flex items-start gap-2 text-sm text-foreground/80">
+                        <span className={cn("w-1.5 h-1.5 rounded-full mt-2 shrink-0", colors.dot)} />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Reflection questions */}
+      {report.reflectionQuestions?.length > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-card">
+          <h4 className="text-sm font-semibold text-foreground mb-3">Pytania do refleksji</h4>
+          <ol className="space-y-2.5">
+            {report.reflectionQuestions.map((q, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/80">
+                <span className="text-xs font-bold text-muted-foreground mt-0.5 w-4 shrink-0 tabular-nums">{i + 1}.</span>
+                <span className="italic leading-relaxed">{q}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* Data quality note */}
+      {report.dataQuality?.coverageNote && (
+        <p className="text-xs text-muted-foreground/60 px-1">{report.dataQuality.coverageNote}</p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function KlientPage() {
   const params = useParams();
   const router = useRouter();
@@ -108,6 +201,9 @@ export default function KlientPage() {
   const [aiEnabled, setAiEnabled] = useState(true);
   const [retroLoading, setRetroLoading] = useState(false);
   const [retroExpanded, setRetroExpanded] = useState(true);
+  const [retroInsufficientData, setRetroInsufficientData] = useState<string[] | null>(null);
+  const [deleteRetroId, setDeleteRetroId] = useState<string | null>(null);
+  const [deletingRetro, setDeletingRetro] = useState(false);
   const [closeProcessOpen, setCloseProcessOpen] = useState(false);
   const [closingProcess, setClosingProcess] = useState(false);
   const [finalReportExpanded, setFinalReportExpanded] = useState(true);
@@ -133,6 +229,7 @@ export default function KlientPage() {
 
   const handleGenerateRetro = async () => {
     setRetroLoading(true);
+    setRetroInsufficientData(null);
     const res = await fetch("/api/ai/retrospective", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -145,9 +242,28 @@ export default function KlientPage() {
       setRetroExpanded(true);
       setExpandedRetro(null);
     } else {
-      const err = await res.json();
-      if (res.status === 503) setAiEnabled(false);
-      toast({ title: "Błąd generowania", description: err.error, variant: "destructive" });
+      const body = await res.json().catch(() => ({})) as { error?: { code?: string; missing?: string[] } | string };
+      if (res.status === 503) { setAiEnabled(false); return; }
+      if (res.status === 400 && typeof body.error === "object" && body.error?.code === "INSUFFICIENT_DATA") {
+        setRetroInsufficientData(body.error.missing ?? []);
+        setRetroExpanded(true);
+        return;
+      }
+      const msg = typeof body.error === "string" ? body.error : (body.error as { message?: string })?.message ?? "Nieznany błąd";
+      toast({ title: "Błąd generowania", description: msg, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteRetro = async (id: string) => {
+    setDeletingRetro(true);
+    const res = await fetch(`/api/ai/retrospective/${id}`, { method: "DELETE" });
+    setDeletingRetro(false);
+    setDeleteRetroId(null);
+    if (res.ok) {
+      fetchClient();
+      if (expandedRetro === id) setExpandedRetro(null);
+    } else {
+      toast({ title: "Błąd usuwania", description: "Nie udało się usunąć retrospektywy.", variant: "destructive" });
     }
   };
 
@@ -383,10 +499,7 @@ export default function KlientPage() {
                 <h2 className="text-base font-semibold">Retrospektywy
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">({client.retrospectives.length})</span>
                 </h2>
-                {retroExpanded
-                  ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                }
+                {retroExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
               </button>
               <Button
                 size="sm"
@@ -402,48 +515,116 @@ export default function KlientPage() {
             </div>
 
             {retroExpanded && (
-              <>
-                {client.retrospectives.length === 0 ? (
+              <div className="space-y-3">
+                {/* Insufficient data alert */}
+                {retroInsufficientData && (
+                  <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/20 p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-2">
+                          Za mało danych — uzupełnij poniższe, aby retrospektywa miała wartość:
+                        </p>
+                        <ul className="space-y-1.5">
+                          {retroInsufficientData.map((item, i) => (
+                            <li key={i} className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {client.retrospectives.length === 0 && !retroInsufficientData ? (
                   <div className="text-center py-8 border-2 border-dashed border-blue-200/60 dark:border-slate-700 rounded-xl bg-blue-50/30 dark:bg-transparent">
-                    <p className="text-sm text-muted-foreground">Brak retrospektyw. Kliknij „Wygeneruj retrospektywę" lub użyj Mentora AI.</p>
+                    <p className="text-sm text-muted-foreground">Brak retrospektyw. Kliknij „Wygeneruj retrospektywę".</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {client.retrospectives.map((r) => (
-                      <div key={r.id} className="border rounded-xl overflow-hidden">
-                        <button
-                          className="w-full text-left py-3 px-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors flex items-center justify-between"
-                          onClick={() => setExpandedRetro(expandedRetro === r.id ? null : r.id)}
-                        >
-                          <div className="flex items-center gap-2">
+                      <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                        {/* Row header */}
+                        <div className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <button
+                            className="flex items-center gap-2 flex-1 text-left min-w-0"
+                            onClick={() => setExpandedRetro(expandedRetro === r.id ? null : r.id)}
+                          >
                             <span className="font-medium text-sm">{formatDate(r.createdAt)}</span>
                             {r.truncated && (
-                              <span className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                              <span className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 shrink-0">
                                 Skrócona
                               </span>
                             )}
-                          </div>
-                          <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform", expandedRetro === r.id && "rotate-90")} />
-                        </button>
-                        {expandedRetro === r.id && (
-                          <div className="px-4 pb-4 pt-1 border-t">
-                            {r.truncated && (
-                              <p className="text-xs text-amber-600 dark:text-amber-400 mb-3 italic">
-                                Część starszych notatek została pominięta ze względu na limit długości.
-                              </p>
+                            {r.reportJson && (
+                              <span className="text-xs bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400 px-2 py-0.5 rounded-full border border-violet-200 dark:border-violet-800 shrink-0">
+                                AI v2
+                              </span>
                             )}
-                            <div className="prose-coach">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.reportMd}</ReactMarkdown>
-                            </div>
+                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => setDeleteRetroId(r.id)}
+                              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                              title="Usuń retrospektywę"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <ChevronRight
+                              className={cn("w-4 h-4 text-muted-foreground transition-transform", expandedRetro === r.id && "rotate-90")}
+                              onClick={() => setExpandedRetro(expandedRetro === r.id ? null : r.id)}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Expanded body */}
+                        {expandedRetro === r.id && (
+                          <div className="border-t border-slate-200 dark:border-slate-700 px-4 pb-5 pt-4">
+                            {r.reportJson ? (
+                              <RetrospectiveReport report={r.reportJson} />
+                            ) : r.reportMd ? (
+                              <>
+                                {r.truncated && (
+                                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-3 italic">
+                                    Część starszych notatek została pominięta ze względu na limit długości.
+                                  </p>
+                                )}
+                                <div className="prose-coach">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.reportMd}</ReactMarkdown>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">Brak treści raportu.</p>
+                            )}
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
+
+          {/* Delete retrospective confirm */}
+          <Dialog open={!!deleteRetroId} onOpenChange={(open) => { if (!open) setDeleteRetroId(null); }}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Usuń retrospektywę</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground py-2">
+                Czy na pewno chcesz usunąć tę retrospektywę? Tej operacji nie da się cofnąć.
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteRetroId(null)} disabled={deletingRetro}>Anuluj</Button>
+                <Button variant="destructive" onClick={() => deleteRetroId && handleDeleteRetro(deleteRetroId)} disabled={deletingRetro}>
+                  {deletingRetro ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Usuwanie…</> : "Usuń"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           {/* Final report card — shown when process is closed */}
           {client.finalReportMd && (
             <div className="bg-white dark:bg-card rounded-2xl border border-emerald-200 dark:border-emerald-800 p-5">

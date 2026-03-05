@@ -84,12 +84,14 @@ model SessionOffboarding {
 }
 
 model Retrospective {
-  id        String   @id @default(cuid())
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  reportMd  String
-  truncated Boolean  @default(false)
+  id         String   @id @default(cuid())
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  reportJson Json?    // Structured JSON report (v1+). New retrospectives use this.
+  reportMd   String?  // Legacy markdown (kept for existing records)
+  truncated  Boolean  @default(false)
+  version    String   @default("v1")
 }
 
 model MentorConversation {

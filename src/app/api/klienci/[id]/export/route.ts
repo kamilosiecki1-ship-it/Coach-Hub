@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         orderBy: { scheduledAt: "asc" },
         include: { offboarding: true },
       },
-      retrospectives: { orderBy: { createdAt: "asc" } },
+      retrospectives: { orderBy: { createdAt: "desc" }, take: 1 },
       user: { select: { name: true, email: true } },
     },
   });
@@ -76,7 +76,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     retrospectives: client.retrospectives.map((r) => ({
       id: r.id,
       createdAt: r.createdAt.toISOString(),
-      reportMd: r.reportMd,
+      reportMd: r.reportMd ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      reportJson: (r.reportJson ?? null) as any,
       truncated: r.truncated,
     })),
   };
