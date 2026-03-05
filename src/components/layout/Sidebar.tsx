@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 const navItems = [
   { href: "/pulpit", label: "Pulpit", icon: LayoutDashboard },
   { href: "/klienci", label: "Klienci", icon: Users },
+  { href: "/mentor", label: "Mentor AI", icon: Brain },
   { href: "/notatnik", label: "Notatnik", icon: BookMarked },
   { href: "/hub-wiedzy", label: "Hub wiedzy", icon: BookOpen },
   { href: "/ustawienia", label: "Ustawienia", icon: Settings },

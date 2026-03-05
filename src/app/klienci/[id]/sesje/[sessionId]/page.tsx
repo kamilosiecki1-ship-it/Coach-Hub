@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSidebar } from "@/contexts/sidebar-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MarkdownEditor } from "@/components/sessions/MarkdownEditor";
 import { SessionOffboardingModal } from "@/components/sessions/SessionOffboardingModal";
@@ -20,6 +21,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn, formatDateTime } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { MentorAIPanel } from "@/components/mentor/MentorAIPanel";
 
 interface Session {
   id: string;
@@ -41,6 +44,12 @@ interface Session {
 interface Offboarding {
   id: string;
   generatedNoteMd: string;
+}
+
+interface ClientSession {
+  id: string;
+  scheduledAt: string;
+  status: string;
 }
 
 export default function SesjaPage() {
@@ -65,6 +74,39 @@ export default function SesjaPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const [mentorOpen, setMentorOpen] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [clientSessions, setClientSessions] = useState<ClientSession[]>([]);
+  const [drawerDataLoaded, setDrawerDataLoaded] = useState(false);
+
+  // Auto-collapse sidebar for more horizontal space (same pattern as client view)
+  const { setCollapsed } = useSidebar();
+  useEffect(() => {
+    const wasCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    if (!wasCollapsed) setCollapsed(true);
+    return () => {
+      if (!wasCollapsed) setCollapsed(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadDrawerData = useCallback(async () => {
+    if (drawerDataLoaded) return;
+    const [clientRes, aiRes] = await Promise.all([
+      fetch(`/api/klienci/${clientId}`),
+      fetch("/api/ai/status"),
+    ]);
+    if (clientRes.ok) {
+      const data = await clientRes.json();
+      setClientSessions(data.sessions ?? []);
+    }
+    if (aiRes.ok) {
+      const data = await aiRes.json();
+      setAiEnabled(data.configured ?? false);
+    }
+    setDrawerDataLoaded(true);
+  }, [clientId, drawerDataLoaded]);
+
   const fetchOffboarding = useCallback(async () => {
     const res = await fetch(`/api/sesje/${sessionId}/offboarding`);
     if (res.ok) {
@@ -88,6 +130,10 @@ export default function SesjaPage() {
     fetchSession();
     fetchOffboarding();
   }, [fetchSession, fetchOffboarding]);
+
+  useEffect(() => {
+    if (mentorOpen && !drawerDataLoaded) loadDrawerData();
+  }, [mentorOpen, drawerDataLoaded, loadDrawerData]);
 
   // Autosave metadata when date/duration changes
   useEffect(() => {
@@ -142,6 +188,16 @@ export default function SesjaPage() {
   if (!session) return null;
 
   const isPlanned = session.status === "Zaplanowana";
+
+  const sortedClientSessions = [...clientSessions].sort(
+    (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+  );
+  const completedSessions = sortedClientSessions
+    .map((s, idx) => ({ ...s, sessionNumber: idx + 1 }))
+    .filter(s => s.status === "Odbyta");
+  const plannedSessions = sortedClientSessions
+    .map((s, idx) => ({ id: s.id, scheduledAt: s.scheduledAt, sessionNumber: idx + 1, status: s.status }))
+    .filter(s => s.status === "Zaplanowana" && new Date(s.scheduledAt) >= new Date());
 
   return (
     <AppLayout>
@@ -201,13 +257,13 @@ export default function SesjaPage() {
                     {offboarding ? "Edytuj podsumowanie" : "Uzupełnij podsumowanie"}
                   </button>
                 )}
-                <Link
-                  href={`/klienci/${clientId}`}
+                <button
+                  onClick={() => setMentorOpen(true)}
                   className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/80 text-violet-700 hover:bg-violet-400/30 hover:text-white rounded-xl transition-colors"
                 >
                   <Brain className="w-3.5 h-3.5" />
                   Mentor AI
-                </Link>
+                </button>
                 <button
                   onClick={() => setDeleteConfirmOpen(true)}
                   className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/80 text-red-600 hover:bg-red-400/30 hover:text-white rounded-xl transition-colors"
@@ -420,6 +476,21 @@ export default function SesjaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mentor AI drawer */}
+      <Sheet open={mentorOpen} onOpenChange={setMentorOpen}>
+        <SheetContent side="right" className="w-[700px] p-0 flex flex-col overflow-hidden">
+          <MentorAIPanel
+            clientId={clientId}
+            clientName={session.client.name}
+            completedSessions={completedSessions}
+            plannedSessions={plannedSessions}
+            aiEnabled={aiEnabled}
+            fromSessionId={sessionId}
+            fromSessionStatus={session.status}
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Offboarding modal */}
       <SessionOffboardingModal

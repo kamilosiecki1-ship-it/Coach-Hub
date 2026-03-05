@@ -1,28 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("sidebarCollapsed");
-    if (stored !== null) setSidebarCollapsed(stored === "true");
-  }, []);
-
-  const handleToggle = () => {
-    setSidebarCollapsed((v) => {
-      const next = !v;
-      localStorage.setItem("sidebarCollapsed", String(next));
-      return next;
-    });
-  };
+  const { collapsed, toggle } = useSidebar();
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={handleToggle}
+        collapsed={collapsed}
+        onToggleCollapse={toggle}
       />
       <main className="flex-1 min-w-0 overflow-auto">
         {children}

@@ -207,52 +207,6 @@ export function buildClientContext(ctx: ClientContext): BuiltContext {
   return { contextBlock, contextSummary, sessionsIncluded, totalSessions, newestSessionDate };
 }
 
-// ─── Main Mentor AI Response ──────────────────────────────────────────────────
-
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export async function generateMentorResponse(
-  clientCtx: ClientContext,
-  history: ChatMessage[],
-  userId?: string
-): Promise<string> {
-  const client = getClient();
-  const { contextBlock } = buildClientContext(clientCtx);
-
-  const coachFraming = `> **Dla Mentora AI:** Rozmawiasz z COACHEM — nie z klientem. Poniżej kontekst coachingowy klienta, z którym coach pracuje.`;
-  const systemPrompt = `${MENTOR_SYSTEM_PROMPT}\n\n---\n\n${coachFraming}\n\n## Kontekst coachingowy\n\n${contextBlock}`;
-
-  const recentHistory = history.slice(-30);
-
-  let requestParams: ChatCompletionCreateParamsNonStreaming;
-
-  if (isReasoningModel(MODEL)) {
-    const allContent = `[Instrukcja systemowa]\n${systemPrompt}\n\n[Rozmowa]`;
-    const msgs: Message[] = [{ role: "user", content: allContent }];
-    for (const msg of recentHistory) {
-      msgs.push({ role: msg.role, content: msg.content });
-    }
-    requestParams = { model: MODEL, messages: msgs, max_completion_tokens: 2400 };
-  } else {
-    requestParams = {
-      model: MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...recentHistory,
-      ],
-      temperature: 0.8,
-      max_tokens: 2400,
-    };
-  }
-
-  const response = await client.chat.completions.create(requestParams);
-  logUsage(response, userId, "mentor_chat");
-  return response.choices[0]?.message?.content ?? "Nie udało się wygenerować odpowiedzi.";
-}
-
 // ─── Process Closing Report (EMCC / ICF accreditation) ───────────────────────
 
 export async function generateProcessReport(

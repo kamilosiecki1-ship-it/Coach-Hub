@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import TiptapLink from "@tiptap/extension-link";
 import { Markdown } from "tiptap-markdown";
 import {
   CheckCircle2, Loader2,
@@ -84,6 +85,7 @@ export function MarkdownEditor({ sessionId, initialValue, saveField = "notesMd",
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder: placeholder ?? "Wprowadź notatki z sesji..." }),
+      TiptapLink.configure({ openOnClick: true, autolink: true }),
       Markdown.configure({ html: false, transformPastedText: true }),
     ],
     content: initialValue,

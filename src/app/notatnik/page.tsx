@@ -19,6 +19,9 @@ type NoteSummary = {
 
 type NoteDetail = NoteSummary & {
   content: object;
+  sourceConversationId?: string | null;
+  sourceConversationTitle?: string | null;
+  sourceClientId?: string | null;
 };
 
 export default function NotatnikPage() {
@@ -101,8 +104,8 @@ export default function NotatnikPage() {
         {/* ── Left panel: notes list ── */}
         <div className="w-72 shrink-0 flex flex-col bg-white dark:bg-card rounded-2xl border overflow-hidden shadow-sm">
 
-          {/* Header — blue gradient */}
-          <div className="header-gradient px-4 pt-4 pb-4">
+          {/* Header — orange gradient */}
+          <div className="header-gradient-scratchpad px-4 pt-4 pb-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <BookMarked className="w-4 h-4 text-white/80" />
@@ -234,6 +237,9 @@ export default function NotatnikPage() {
               onSaved={(title, plainText) => handleSaved(selectedNote.id, title, plainText)}
               onPinToggle={(isPinned) => handlePinToggle(selectedNote.id, isPinned)}
               onDelete={() => handleDelete(selectedNote.id)}
+              sourceConversationId={selectedNote.sourceConversationId}
+              sourceConversationTitle={selectedNote.sourceConversationTitle}
+              sourceClientId={selectedNote.sourceClientId}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-3">

@@ -189,9 +189,9 @@ export default function HubWiedzyPage() {
     <AppLayout>
       <div className="p-8 max-w-4xl mx-auto">
         {/* Premium gradient hero */}
-        <div className="relative overflow-hidden rounded-2xl header-gradient mb-8">
+        <div className="relative overflow-hidden rounded-2xl header-gradient-purple mb-8">
           <div className="absolute -top-6 -right-6 w-44 h-44 rounded-full bg-white/20 blur-2xl pointer-events-none" />
-          <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-purple-300/20 blur-2xl pointer-events-none" />
           <div className="relative z-10 px-7 py-6">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">

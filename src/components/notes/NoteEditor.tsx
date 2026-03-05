@@ -8,7 +8,7 @@ import TiptapLink from "@tiptap/extension-link";
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Undo2, Redo2, Link as LinkIcon,
-  CheckCircle2, Loader2, Pin, PinOff, Trash2, BookMarked,
+  CheckCircle2, Loader2, Pin, PinOff, Trash2, BookMarked, Bot, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -56,11 +56,16 @@ interface NoteEditorProps {
   onSaved: (title: string, plainText: string) => void;
   onPinToggle: (isPinned: boolean) => void;
   onDelete: () => void;
+  /** Source tracking for notes created from Mentor AI messages */
+  sourceConversationId?: string | null;
+  sourceConversationTitle?: string | null;
+  sourceClientId?: string | null;
 }
 
 export function NoteEditor({
   noteId, initialTitle, initialContent, isPinned,
   onSaved, onPinToggle, onDelete,
+  sourceConversationId, sourceConversationTitle, sourceClientId,
 }: NoteEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -175,9 +180,9 @@ export function NoteEditor({
   return (
     <div className="flex flex-col h-full">
       {/* Note header — premium gradient */}
-      <div className="relative overflow-hidden shrink-0 header-gradient">
+      <div className="relative overflow-hidden shrink-0 header-gradient-scratchpad">
         <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/20 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 -left-4 w-28 h-28 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 -left-4 w-28 h-28 rounded-full bg-orange-300/20 blur-2xl pointer-events-none" />
         <div className="relative z-10 px-5 pt-4 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/30 shadow-sm flex items-center justify-center shrink-0">
@@ -336,6 +341,25 @@ export function NoteEditor({
           )}
         </div>
       </div>
+
+      {/* Source reference banner (shown for notes created from Mentor AI) */}
+      {sourceConversationId && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/20 border-b border-blue-100 dark:border-blue-900/40 shrink-0">
+          <Bot className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+          <span className="text-xs text-blue-700 dark:text-blue-300 flex-1 min-w-0 truncate">
+            Źródło: Mentor AI — {sourceConversationTitle ?? "rozmowa"}
+          </span>
+          <a
+            href={`/mentor?convId=${sourceConversationId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 shrink-0 font-medium transition-colors"
+          >
+            Przejdź do rozmowy
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      )}
 
       {/* Editor canvas */}
       <div className="flex-1 overflow-y-auto px-6 py-5">

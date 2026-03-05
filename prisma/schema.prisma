@@ -35,7 +35,7 @@ model Client {
   updatedAt       DateTime        @updatedAt
   sessions        Session[]
   retrospectives  Retrospective[]
-  chatThread      ChatThread?
+  mentorConversations MentorConversation[]
   finalReportMd   String?
   closedAt        DateTime?
 }
@@ -54,6 +54,7 @@ model Session {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   offboarding  SessionOffboarding?
+  mentorConversations MentorConversation[] @relation("MentorConvSession")
 }
 
 model SessionOffboarding {
@@ -91,22 +92,33 @@ model Retrospective {
   truncated Boolean  @default(false)
 }
 
-model ChatThread {
-  id        String        @id @default(cuid())
-  clientId  String        @unique
-  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  messages  ChatMessage[]
+model MentorConversation {
+  id                  String          @id @default(cuid())
+  userId              String
+  clientId            String?
+  client              Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  title               String
+  contextType         String          // PROCESS | SESSION | GENERAL
+  contextSessionId    String?
+  contextSession      Session?        @relation("MentorConvSession", fields: [contextSessionId], references: [id], onDelete: SetNull)
+  status              String          @default("ACTIVE")   // ACTIVE | ARCHIVED
+  conversationSummary String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  lastMessageAt       DateTime?
+  messages            MentorMessage[]
 }
 
-model ChatMessage {
-  id         String     @id @default(cuid())
-  threadId   String
-  thread     ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  role       String
-  contentMd  String
-  createdAt  DateTime   @default(now())
+model MentorMessage {
+  id             String             @id @default(cuid())
+  conversationId String
+  conversation   MentorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String             // user | assistant
+  content        String
+  inputTokens    Int?
+  outputTokens   Int?
+  totalTokens    Int?
+  createdAt      DateTime           @default(now())
 }
 
 model KnowledgeTool {
@@ -178,6 +190,12 @@ model Note {
   isPinned  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Source tracking for notes created from Mentor AI messages
+  sourceConversationId    String?
+  sourceMessageId         String?
+  sourceConversationTitle String?
+  sourceClientId          String?
 
   @@index([userId, updatedAt])
 }

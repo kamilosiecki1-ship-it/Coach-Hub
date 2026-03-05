@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useSidebar } from "@/contexts/sidebar-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -12,14 +13,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   ArrowLeft, Plus, Edit, Trash2, Loader2, Calendar, Clock,
-  FileText, Building2, Briefcase, ChevronRight,
-  AlertCircle, Send, ChevronDown, ChevronUp, Sparkles, Lock,
-  Gem, Target, Paperclip, Mic, FileDown,
+  Building2, Briefcase, ChevronRight,
+  ChevronDown, ChevronUp, Sparkles, Lock,
+  FileDown, TriangleAlert,
 } from "lucide-react";
-import { MentorMark } from "@/components/ui/mentor-mark";
 import Link from "next/link";
 import { cn, formatDate, formatDateTime, STAGE_OPTIONS } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { MentorAIPanel } from "@/components/mentor/MentorAIPanel";
 
 interface Session {
   id: string;
@@ -49,46 +50,21 @@ interface Client {
   closedAt?: string | null;
 }
 
-interface ChatMsg {
-  id: string;
-  role: "user" | "assistant";
-  contentMd: string;
-  createdAt: string;
-}
-
-const QUICK_PROMPTS = [
-  {
-    label: "Ogólna refleksja",
-    icon: "🔍",
-    message: `Chciałbym omówić ogólny postęp i dynamikę pracy z tym klientem. Jakie wzorce widzisz w dotychczasowych sesjach? Co warto pogłębić lub zmienić w moim podejściu jako coacha?`,
-  },
-  {
-    label: "Feedback dla coacha",
-    icon: "🎯",
-    message: `Proszę o konstruktywny feedback dotyczący mojej pracy z tym klientem. Na podstawie notatek z sesji — co robię dobrze, co mogę poprawić i gdzie mogłem działać inaczej? Mów wprost, jak mentor, nie dyplomatycznie.`,
-  },
-  {
-    label: "Pomóż zaplanować sesję",
-    icon: "📋",
-    message: `Pomóż mi zaplanować kolejną sesję z tym klientem. Zaproponuj konkretny cel sesji wynikający z historii procesu, strukturę z orientacyjnym czasem, 2–3 techniki lub narzędzia coachingowe oraz 4–6 gotowych pytań do bezpośredniego użycia na sesji.`,
-  },
-];
-
-function getQuickPromptMeta(label: string): { icon: React.ReactNode; textColorClass: string; hoverClass: string } {
-  switch (label) {
-    case "Ogólna refleksja":       return { icon: <Gem className="w-3.5 h-3.5" />,      textColorClass: "text-[#224cc0] dark:text-white/90", hoverClass: "hover:bg-[#224cc0] hover:text-white dark:hover:bg-white/20" };
-    case "Feedback dla coacha":    return { icon: <Target className="w-3.5 h-3.5" />,   textColorClass: "text-[#D28B4C] dark:text-white/90", hoverClass: "hover:bg-[#D28B4C] hover:text-white dark:hover:bg-white/20" };
-    case "Pomóż zaplanować sesję": return { icon: <Sparkles className="w-3.5 h-3.5" />, textColorClass: "text-[#8A66BC] dark:text-white/90", hoverClass: "hover:bg-[#8A66BC] hover:text-white dark:hover:bg-white/20" };
-    default:                        return { icon: null, textColorClass: "text-slate-600 dark:text-white/90", hoverClass: "hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-white/20" };
-  }
-}
-
 const STAGE_COLORS: Record<string, string> = {
   "Wstęp":      "bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800",
   "Onboarding": "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800",
   "W trakcie":  "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800",
   "Zakończony": "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
   "Zawieszony": "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800",
+};
+
+// Colors for the gradient header (dark background)
+const STAGE_COLORS_HEADER: Record<string, string> = {
+  "Wstęp":      "bg-orange-400/30 border-orange-300/50 text-orange-100",
+  "Onboarding": "bg-sky-400/30 border-sky-300/50 text-sky-100",
+  "W trakcie":  "bg-emerald-400/30 border-emerald-300/50 text-emerald-100",
+  "Zakończony": "bg-slate-400/30 border-slate-300/50 text-slate-100",
+  "Zawieszony": "bg-amber-400/30 border-amber-300/50 text-amber-100",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -100,8 +76,10 @@ const STATUS_COLORS: Record<string, string> = {
 export default function KlientPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const clientId = params.id as string;
+  const initialConvId = searchParams.get("mentorConvId") ?? undefined;
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,18 +94,23 @@ export default function KlientPage() {
     durationMin: "60",
   });
 
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatInput, setChatInput] = useState("");
-  const [contextSummary, setContextSummary] = useState<string>("");
+  // Auto-collapse sidebar while on client view for more horizontal space
+  const { setCollapsed } = useSidebar();
+  useEffect(() => {
+    const wasCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    if (!wasCollapsed) setCollapsed(true);
+    return () => {
+      if (!wasCollapsed) setCollapsed(false);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [aiEnabled, setAiEnabled] = useState(true);
   const [retroLoading, setRetroLoading] = useState(false);
   const [retroExpanded, setRetroExpanded] = useState(true);
   const [closeProcessOpen, setCloseProcessOpen] = useState(false);
   const [closingProcess, setClosingProcess] = useState(false);
   const [finalReportExpanded, setFinalReportExpanded] = useState(true);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchClient = useCallback(async () => {
     setLoading(true);
@@ -139,16 +122,7 @@ export default function KlientPage() {
     setLoading(false);
   }, [clientId, router]);
 
-  const fetchThread = useCallback(async () => {
-    const res = await fetch(`/api/chat/thread?clientId=${clientId}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setMessages(data.messages ?? []);
-    setContextSummary(data.contextSummary ?? "");
-  }, [clientId]);
-
   useEffect(() => { fetchClient(); }, [fetchClient]);
-  useEffect(() => { fetchThread(); }, [fetchThread]);
 
   useEffect(() => {
     fetch("/api/ai/status")
@@ -156,72 +130,6 @@ export default function KlientPage() {
       .then((data) => { if (!data.configured) setAiEnabled(false); })
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const sendMessage = async (messageText: string) => {
-    if (!messageText.trim() || chatLoading) return;
-
-    const optimisticMsg: ChatMsg = {
-      id: `tmp-${Date.now()}`,
-      role: "user",
-      contentMd: messageText,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimisticMsg]);
-    setChatInput("");
-    setChatLoading(true);
-
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-
-    try {
-      const res = await fetch("/api/ai/mentor/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, message: messageText }),
-      });
-
-      if (res.status === 503) {
-        setAiEnabled(false);
-        setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
-        toast({ title: "AI niedostępne", description: "Brak klucza OPENAI_API_KEY.", variant: "destructive" });
-        return;
-      }
-
-      if (!res.ok) {
-        const err = await res.json();
-        setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
-        toast({ title: "Błąd AI", description: err.error, variant: "destructive" });
-        return;
-      }
-
-      const data = await res.json();
-      setContextSummary(data.contextSummary ?? contextSummary);
-
-      setMessages((prev) => {
-        const without = prev.filter((m) => m.id !== optimisticMsg.id);
-        return [
-          ...without,
-          { ...optimisticMsg, id: `user-${Date.now()}` },
-          {
-            id: data.message.id,
-            role: "assistant",
-            contentMd: data.message.contentMd,
-            createdAt: data.message.createdAt,
-          },
-        ];
-      });
-    } catch {
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
-      toast({ title: "Błąd połączenia", variant: "destructive" });
-    } finally {
-      setChatLoading(false);
-    }
-  };
 
   const handleGenerateRetro = async () => {
     setRetroLoading(true);
@@ -317,7 +225,16 @@ export default function KlientPage() {
 
   if (!client) return null;
 
-  const stageColor = STAGE_COLORS[client.stage] ?? "bg-slate-100 text-slate-600 border-slate-200";
+  const stageHeaderColor = STAGE_COLORS_HEADER[client.stage] ?? "bg-white/20 border-white/30 text-white";
+
+  const completedSessions = client.sessions
+    .map((s, idx) => ({ id: s.id, scheduledAt: s.scheduledAt, sessionNumber: client.sessions.length - idx, status: s.status }))
+    .filter((s) => s.status === "Odbyta");
+
+  const plannedSessions = [...client.sessions]
+    .map((s, idx) => ({ id: s.id, scheduledAt: s.scheduledAt, sessionNumber: client.sessions.length - idx, status: s.status }))
+    .filter((s) => s.status === "Zaplanowana" && new Date(s.scheduledAt) >= new Date())
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
   return (
     <AppLayout>
@@ -358,12 +275,12 @@ export default function KlientPage() {
                         </span>
                       )}
                     </div>
-                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full bg-white/20 border border-white/30 text-white mt-2">
+                    <span className={cn("inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full border mt-2", stageHeaderColor)}>
                       {client.stage}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex flex-wrap gap-2 shrink-0 justify-end">
                   {client.stage !== "Zakończony" && (
                     <button
                       onClick={() => setCloseProcessOpen(true)}
@@ -439,6 +356,12 @@ export default function KlientPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {s.status === "Zaplanowana" && new Date(s.scheduledAt) < new Date() && (
+                        <span className="shrink-0 flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                          <TriangleAlert className="w-3.5 h-3.5 shrink-0" />
+                          Zaplanowana w przeszłości
+                        </span>
+                      )}
                       <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600")}>
                         {s.status}
                       </span>
@@ -558,178 +481,15 @@ export default function KlientPage() {
         </div>
 
         {/* ── Right column: Mentor AI ── */}
-        <div className="w-[420px] shrink-0 flex flex-col bg-white dark:bg-card rounded-2xl shadow-sm overflow-hidden">
-
-          {/* Header + quick prompts — single blue gradient block */}
-          <div className="relative overflow-hidden shrink-0 header-gradient">
-            {/* Subtle blur circles */}
-            <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/20 blur-2xl pointer-events-none" />
-            <div className="absolute bottom-0 -left-4 w-28 h-28 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
-
-            {/* Title row */}
-            <div className="relative z-10 px-5 pt-4 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-white/20 border border-white/30 shadow-sm flex items-center justify-center shrink-0">
-                  <MentorMark className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-white leading-tight">Mentor AI</p>
-                  <p className="text-xs text-white/80 mt-0.5">Superwizja i refleksja</p>
-                </div>
-              </div>
-              {contextSummary && (
-                <p className="text-xs text-white/70 mt-2.5 leading-relaxed line-clamp-2">
-                  {contextSummary}
-                </p>
-              )}
-              {!aiEnabled && (
-                <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-700 bg-amber-50/90 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  AI niedostępne – brak klucza OPENAI_API_KEY.
-                </div>
-              )}
-            </div>
-
-            {/* Quick prompts inside the gradient */}
-            <div className="relative z-10 px-3 pb-3 flex gap-2">
-              {QUICK_PROMPTS.map((qp) => {
-                const meta = getQuickPromptMeta(qp.label);
-                return (
-                  <button
-                    key={qp.label}
-                    onClick={() => sendMessage(qp.message)}
-                    disabled={chatLoading || !aiEnabled}
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center gap-1 py-2 px-1.5 rounded-xl text-xs font-medium",
-                      "bg-white/85 dark:bg-white/10 dark:border dark:border-white/20 shadow-sm transition-all",
-                      meta.textColorClass,
-                      meta.hoverClass,
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    {meta.icon}
-                    <span className="leading-tight text-center">{qp.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 panel-bg">
-
-            {/* Date separator — inside chat box so it inherits the background */}
-            <div className="flex items-center gap-3 pt-0 pb-1">
-              <div className="flex-1 border-t border-dashed border-blue-200/70" />
-              <span className="text-xs text-blue-300 whitespace-nowrap">
-                {new Date().toLocaleDateString("pl-PL", { day: "numeric", month: "long" })}
-              </span>
-              <div className="flex-1 border-t border-dashed border-blue-200/70" />
-            </div>
-
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-8">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center">
-                  <MentorMark className="w-7 h-7 text-blue-400 dark:text-blue-500" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm text-foreground">Witaj w Mentor AI</p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
-                    Zadaj pytanie lub użyj szybkich akcji powyżej.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn("flex gap-2", msg.role === "user" ? "justify-end" : "justify-start")}
-              >
-                {msg.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-[#85b5f7] flex items-center justify-center shrink-0 mt-0.5">
-                    <MentorMark className="w-3.5 h-3.5 text-white" />
-                  </div>
-                )}
-                <div className="max-w-[85%]">
-                  {msg.role === "user" ? (
-                    <div className="bg-gradient-to-br from-[#7aaef5] via-[#5a8ae8] to-[#3d6fd4] text-white rounded-3xl rounded-br-md px-4 py-2.5 text-sm">
-                      <p className="whitespace-pre-wrap leading-relaxed">{msg.contentMd}</p>
-                    </div>
-                  ) : (
-                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm text-foreground">
-                      <div className="prose-coach">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.contentMd}</ReactMarkdown>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {chatLoading && (
-              <div className="flex gap-2 justify-start">
-                <div className="w-7 h-7 rounded-full bg-[#85b5f7] flex items-center justify-center shrink-0 mt-0.5">
-                  <MentorMark className="w-3.5 h-3.5 text-white" />
-                </div>
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl rounded-tl-sm px-3.5 py-2.5">
-                  <div className="flex gap-1 items-center h-5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={chatBottomRef} />
-          </div>
-
-          {/* Input */}
-          <div className="border-t px-3 pt-3 pb-3 shrink-0 bg-white dark:bg-card">
-            <div className="flex items-end gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 shadow-sm">
-              <button className="shrink-0 p-1.5 mb-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                <Paperclip className="w-4 h-4" />
-              </button>
-              <textarea
-                ref={textareaRef}
-                className="flex-1 resize-none bg-transparent text-sm focus:outline-none min-h-[36px] max-h-[120px] py-1 text-foreground placeholder:text-muted-foreground"
-                placeholder={aiEnabled ? "Napisz do Mentora AI..." : "AI niedostępne"}
-                value={chatInput}
-                disabled={!aiEnabled || chatLoading}
-                rows={1}
-                onChange={(e) => {
-                  setChatInput(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage(chatInput);
-                  }
-                }}
-              />
-              <div className="flex items-center gap-1 shrink-0 mb-0.5">
-                <button className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                  <Mic className="w-4 h-4" />
-                </button>
-                <Button
-                  size="sm"
-                  className="h-8 w-8 p-0 rounded-xl bg-blue-600 hover:bg-blue-700 border-0 shrink-0"
-                  onClick={() => sendMessage(chatInput)}
-                  disabled={!chatInput.trim() || chatLoading || !aiEnabled}
-                >
-                  {chatLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5 ml-1">Enter – wyślij · Shift+Enter – nowa linia</p>
-          </div>
+        <div className="w-[560px] shrink-0 flex flex-col bg-white dark:bg-card rounded-2xl shadow-sm overflow-hidden">
+          <MentorAIPanel
+            clientId={clientId}
+            clientName={client.name}
+            completedSessions={completedSessions}
+            plannedSessions={plannedSessions}
+            aiEnabled={aiEnabled}
+            initialConversationId={initialConvId}
+          />
         </div>
       </div>
 

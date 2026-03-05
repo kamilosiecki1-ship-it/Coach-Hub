@@ -82,6 +82,14 @@
   background: linear-gradient(160deg, #431407 0%, #7c2d12 40%, #9a3412 70%, #b45309 100%);
 }
 
+/* ─── Purple header gradient (knowledge base / hub wiedzy) ─────────────────── */
+.header-gradient-purple {
+  background: linear-gradient(160deg, #7b5cff 0%, #9b7fff 40%, #c4b0ff 70%, #e8e0ff 100%);
+}
+.dark .header-gradient-purple {
+  background: linear-gradient(160deg, #1e0b5c 0%, #2d1080 40%, #3e1fa0 70%, #5a3fe0 100%);
+}
+
 /* ─── Tiptap WYSIWYG editor ────────────────────────────────────────────────── */
 .tiptap-editor-content { outline: none; }
 .tiptap-editor-content h1 { font-size: 1.5rem; font-weight: 700; margin: 1.25rem 0 0.5rem; line-height: 1.3; }
@@ -103,6 +111,8 @@
 .tiptap-editor-content code { font-family: ui-monospace, monospace; font-size: 0.82em; background: hsl(var(--muted)); padding: 0.15em 0.35em; border-radius: 4px; }
 .tiptap-editor-content pre { background: hsl(var(--muted)); border-radius: 8px; padding: 1rem; margin: 0.75rem 0; overflow-x: auto; }
 .tiptap-editor-content pre code { background: transparent; padding: 0; }
+.tiptap-editor-content a { color: hsl(var(--primary)); text-decoration: underline; cursor: pointer; }
+.tiptap-editor-content a:hover { opacity: 0.75; }
 .tiptap-editor-content p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left; height: 0; pointer-events: none;
