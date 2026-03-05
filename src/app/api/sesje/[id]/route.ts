@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!existing) return NextResponse.json({ error: "Nie znaleziono sesji" }, { status: 404 });
 
   const body = await req.json();
-  const { scheduledAt, durationMin, status, notesMd, summaryMd } = body;
+  const { scheduledAt, durationMin, status, notesMd, summaryMd, planMd, scratchpadMd } = body;
 
   const updated = await prisma.session.update({
     where: { id: params.id },
@@ -39,6 +39,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(status !== undefined ? { status } : {}),
       ...(notesMd !== undefined ? { notesMd } : {}),
       ...(summaryMd !== undefined ? { summaryMd } : {}),
+      ...(planMd !== undefined ? { planMd } : {}),
+      ...(scratchpadMd !== undefined ? { scratchpadMd } : {}),
     },
   });
 

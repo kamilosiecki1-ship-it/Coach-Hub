@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, Loader2, Clock, Calendar, Brain, Save, ClipboardList, Trash2, CheckCircle2,
+  FileText, StickyNote,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -27,6 +28,8 @@ interface Session {
   durationMin?: number | null;
   status: string;
   notesMd: string;
+  planMd: string;
+  scratchpadMd: string;
   client: {
     id: string;
     name: string;
@@ -100,18 +103,9 @@ export default function SesjaPage() {
     }
   };
 
-  const handleEndSession = async () => {
-    const res = await fetch(`/api/sesje/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Odbyta", scheduledAt, durationMin: durationMin || null }),
-    });
-    if (res.ok) {
-      setSession((prev) => prev ? { ...prev, status: "Odbyta" } : prev);
-      setOffboardingOpen(true);
-    } else {
-      toast({ title: "Błąd zapisu", variant: "destructive" });
-    }
+  // Status changes to "Odbyta" only after the offboarding form is saved
+  const handleEndSession = () => {
+    setOffboardingOpen(true);
   };
 
   const handleDelete = async () => {
@@ -138,6 +132,7 @@ export default function SesjaPage() {
 
   if (!session) return null;
 
+  const isPlanned = session.status === "Zaplanowana";
 
   return (
     <AppLayout>
@@ -180,7 +175,7 @@ export default function SesjaPage() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {session.status !== "Odbyta" ? (
+                {isPlanned ? (
                   <button
                     onClick={handleEndSession}
                     className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-sm transition-colors"
@@ -245,56 +240,135 @@ export default function SesjaPage() {
           </div>
         </div>
 
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Generated note */}
-          <div className="px-6 pt-5 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Notatka wygenerowana</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Automatycznie stworzona na podstawie formularza podsumowania sesji</p>
+        {/* ── Planned session: two-column editors ── */}
+        {isPlanned ? (
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left: Session Plan */}
+            <div className="flex-1 flex flex-col border-r min-w-0">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-slate-50/80 dark:bg-slate-900/30 shrink-0">
+                <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <p className="text-xs font-semibold text-foreground">Plan sesji</p>
+                <span className="text-xs text-muted-foreground ml-1">— przygotowanie</span>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs"
-                onClick={() => setOffboardingOpen(true)}
-              >
-                <ClipboardList className="w-3 h-3 mr-1" />
-                {offboarding ? "Edytuj" : "Uzupełnij"}
-              </Button>
+              <div className="flex-1 overflow-hidden bg-white dark:bg-card">
+                <MarkdownEditor
+                  sessionId={sessionId}
+                  initialValue={session.planMd}
+                  saveField="planMd"
+                  placeholder="Przygotuj strukturę sesji, pytania, techniki, flow…"
+                />
+              </div>
             </div>
 
-            {offboarding?.generatedNoteMd ? (
-              <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl px-5 py-4 prose-coach overflow-auto">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {offboarding.generatedNoteMd}
-                </ReactMarkdown>
+            {/* Right: Scratchpad */}
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-slate-50/80 dark:bg-slate-900/30 shrink-0">
+                <StickyNote className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <p className="text-xs font-semibold text-foreground">Brudnopis</p>
+                <span className="text-xs text-muted-foreground ml-1">— notatki w trakcie</span>
               </div>
-            ) : (
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl px-5 py-6 text-center text-sm text-muted-foreground">
-                Brak podsumowania po sesji.{" "}
-                Możesz je uzupełnić, aby automatycznie stworzyć ustrukturyzowaną notatkę.{" "}
-                <button
-                  className="underline hover:text-foreground transition-colors"
+              <div className="flex-1 overflow-hidden bg-white dark:bg-card">
+                <MarkdownEditor
+                  sessionId={sessionId}
+                  initialValue={session.scratchpadMd}
+                  saveField="scratchpadMd"
+                  placeholder="Szybkie notatki podczas sesji — cytaty klienta, obserwacje, pomysły…"
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ── Completed session: note + plan + scratchpad ── */
+          <div className="flex-1 overflow-y-auto">
+            {/* Generated note */}
+            <div className="px-6 pt-5 pb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Notatka wygenerowana</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Automatycznie stworzona na podstawie formularza podsumowania sesji</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
                   onClick={() => setOffboardingOpen(true)}
                 >
-                  Uzupełnij teraz
-                </button>
+                  <ClipboardList className="w-3 h-3 mr-1" />
+                  {offboarding ? "Edytuj" : "Uzupełnij"}
+                </Button>
               </div>
+
+              {offboarding?.generatedNoteMd ? (
+                <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl px-5 py-4 prose-coach overflow-auto">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {offboarding.generatedNoteMd}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl px-5 py-6 text-center text-sm text-muted-foreground">
+                  Brak podsumowania po sesji.{" "}
+                  Możesz je uzupełnić, aby automatycznie stworzyć ustrukturyzowaną notatkę.{" "}
+                  <button
+                    className="underline hover:text-foreground transition-colors"
+                    onClick={() => setOffboardingOpen(true)}
+                  >
+                    Uzupełnij teraz
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Plan + Scratchpad side by side */}
+            <div className="flex" style={{ minHeight: "420px" }}>
+              {/* Plan sesji */}
+              <div className="flex-1 flex flex-col border-r min-w-0">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/80 dark:bg-slate-900/30 border-b shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <p className="text-xs font-semibold text-foreground">Plan sesji</p>
+                </div>
+                <div className="flex-1 bg-white dark:bg-card">
+                  <MarkdownEditor
+                    sessionId={sessionId}
+                    initialValue={session.planMd}
+                    saveField="planMd"
+                    placeholder="Plan sesji..."
+                  />
+                </div>
+              </div>
+
+              {/* Brudnopis */}
+              <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/80 dark:bg-slate-900/30 border-b shrink-0">
+                  <StickyNote className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <p className="text-xs font-semibold text-foreground">Brudnopis</p>
+                </div>
+                <div className="flex-1 bg-white dark:bg-card">
+                  <MarkdownEditor
+                    sessionId={sessionId}
+                    initialValue={session.scratchpadMd}
+                    saveField="scratchpadMd"
+                    placeholder="Notatki robocze..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Legacy notesMd — show only if has content */}
+            {session.notesMd?.trim() && (
+              <>
+                <Separator />
+                <div className="px-6 pt-5 pb-6">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Archiwalne notatki własne</p>
+                  <div className="bg-white dark:bg-card border rounded-xl overflow-hidden">
+                    <MarkdownEditor sessionId={sessionId} initialValue={session.notesMd} />
+                  </div>
+                </div>
+              </>
             )}
           </div>
-
-          <Separator />
-
-          {/* Raw notes editor */}
-          <div className="px-6 pt-5 pb-6" style={{ minHeight: "420px" }}>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Notatki własne</p>
-            <div className="bg-white dark:bg-card border rounded-xl overflow-hidden">
-              <MarkdownEditor sessionId={sessionId} initialValue={session.notesMd} />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Delete confirmation dialog */}
@@ -330,9 +404,13 @@ export default function SesjaPage() {
           scheduledAt: session.scheduledAt,
           durationMin: session.durationMin,
           clientName: session.client.name,
-          sessionNotesMd: session.notesMd,
+          sessionPlanMd: session.planMd,
+          sessionScratchpadMd: session.scratchpadMd,
         }}
-        onSaved={fetchOffboarding}
+        onSaved={() => {
+          fetchOffboarding();
+          fetchSession();
+        }}
       />
     </AppLayout>
   );

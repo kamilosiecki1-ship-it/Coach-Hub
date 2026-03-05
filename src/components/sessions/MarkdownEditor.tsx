@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 interface MarkdownEditorProps {
   sessionId: string;
   initialValue: string;
+  saveField?: string; // default "notesMd"
+  placeholder?: string;
   onSave?: (value: string) => void;
 }
 
@@ -49,7 +51,7 @@ function ToolbarBtn({
 
 const Divider = () => <div className="w-px h-4 bg-border mx-1 shrink-0" />;
 
-export function MarkdownEditor({ sessionId, initialValue, onSave }: MarkdownEditorProps) {
+export function MarkdownEditor({ sessionId, initialValue, saveField = "notesMd", placeholder, onSave }: MarkdownEditorProps) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef(initialValue);
@@ -62,7 +64,7 @@ export function MarkdownEditor({ sessionId, initialValue, onSave }: MarkdownEdit
       const res = await fetch(`/api/sesje/${sessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notesMd: text }),
+        body: JSON.stringify({ [saveField]: text }),
       });
       if (res.ok) {
         lastSavedRef.current = text;
@@ -81,7 +83,7 @@ export function MarkdownEditor({ sessionId, initialValue, onSave }: MarkdownEdit
     immediatelyRender: false,
     extensions: [
       StarterKit,
-      Placeholder.configure({ placeholder: "Wprowadź notatki z sesji..." }),
+      Placeholder.configure({ placeholder: placeholder ?? "Wprowadź notatki z sesji..." }),
       Markdown.configure({ html: false, transformPastedText: true }),
     ],
     content: initialValue,

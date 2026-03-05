@@ -45,15 +45,16 @@ export function generateOffboardingNote(data: OffboardingData): string {
     lines.push(headerParts.join("  \n"));
   }
 
+  // Combine homework fields (backwards compat with legacy homeworkDescription)
+  const homeworkCombined = [data.homework, data.homeworkDescription].filter(Boolean).join("\n\n") || null;
+
   const sections = [
     section("Zdarzenie / temat sesji", data.eventTopic),
     section("Cele sesji (zwymiarowane)", data.sessionGoals),
-    section("Learning / doświadczenie", data.learningExperience),
     section("Zastosowane ćwiczenia i techniki", data.techniques),
     section("Kluczowe wnioski i odkrycia (słowami klienta)", data.keyInsightsClient),
     section("Uzyskane umiejętności / efekty", data.gains),
-    section("Zadania domowe", data.homework),
-    section("Zadanie domowe – opis", data.homeworkDescription),
+    section("Zadania domowe", homeworkCombined),
     section("Feedback / uwagi", data.feedback),
     section("Refleksje coacha: learning i zastosowanie w praktyce", data.coachReflection),
     section("Obszary rozwoju / tematy do dalszej superwizji", data.focusAreas),

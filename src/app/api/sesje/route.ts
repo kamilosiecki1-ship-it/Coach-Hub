@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   const userId = (session.user as { id: string }).id;
   const body = await req.json();
-  const { clientId, scheduledAt, durationMin, status } = body;
+  const { clientId, scheduledAt, durationMin } = body;
 
   if (!clientId || !scheduledAt) {
     return NextResponse.json({ error: "Brak wymaganych pól" }, { status: 400 });
@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
       clientId,
       scheduledAt: new Date(scheduledAt),
       durationMin: durationMin ? parseInt(durationMin) : null,
-      status: status ?? "Zaplanowana",
-      notesMd: SESSION_TEMPLATE,
+      status: "Zaplanowana",
+      notesMd: "",
+      planMd: SESSION_TEMPLATE,
     },
   });
 

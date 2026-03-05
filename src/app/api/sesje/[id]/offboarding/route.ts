@@ -77,14 +77,32 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     transcript: transcript || null,
   };
 
-  const generatedNoteMd = generateOffboardingNote(data);
+  // Auto-calculate session number (1-based, sorted by scheduledAt asc)
+  const allSessions = await prisma.session.findMany({
+    where: { clientId: s.clientId },
+    orderBy: { scheduledAt: "asc" },
+    select: { id: true },
+  });
+  const autoSessionNumber = allSessions.findIndex((sess) => sess.id === params.id) + 1;
+  const dataWithNumber = {
+    ...data,
+    sessionNumber: data.sessionNumber ?? autoSessionNumber,
+  };
+
+  const generatedNoteMd = generateOffboardingNote(dataWithNumber);
 
   try {
-    const offboarding = await prisma.sessionOffboarding.upsert({
-      where: { sessionId: params.id },
-      create: { sessionId: params.id, ...data, generatedNoteMd },
-      update: { ...data, generatedNoteMd },
-    });
+    const [offboarding] = await prisma.$transaction([
+      prisma.sessionOffboarding.upsert({
+        where: { sessionId: params.id },
+        create: { sessionId: params.id, ...dataWithNumber, generatedNoteMd },
+        update: { ...dataWithNumber, generatedNoteMd },
+      }),
+      prisma.session.update({
+        where: { id: params.id },
+        data: { status: "Odbyta" },
+      }),
+    ]);
     return NextResponse.json(offboarding);
   } catch (err) {
     console.error("[offboarding POST] Prisma error:", err);

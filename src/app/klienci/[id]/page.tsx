@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { MentorMark } from "@/components/ui/mentor-mark";
 import Link from "next/link";
-import { cn, formatDate, formatDateTime, STAGE_OPTIONS, SESSION_STATUS_OPTIONS } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, STAGE_OPTIONS } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 interface Session {
@@ -114,7 +114,6 @@ export default function KlientPage() {
   const [sessionForm, setSessionForm] = useState({
     scheduledAt: new Date().toISOString().slice(0, 16),
     durationMin: "60",
-    status: "Zaplanowana",
   });
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -426,13 +425,13 @@ export default function KlientPage() {
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {client.sessions.map((s) => (
+                {client.sessions.map((s, idx) => (
                   <Link key={s.id} href={`/klienci/${clientId}/sesje/${s.id}`} className="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-blue-50/50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer -mx-2">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 text-blue-400 dark:text-blue-500" />
+                      <span className="text-xs font-bold text-blue-500 dark:text-blue-400">{client.sessions.length - idx}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{formatDateTime(s.scheduledAt)}</p>
+                      <p className="text-sm font-medium">Sesja {client.sessions.length - idx} · {formatDateTime(s.scheduledAt)}</p>
                       {s.durationMin && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Clock className="w-3 h-3" />{s.durationMin} min
@@ -826,26 +825,15 @@ export default function KlientPage() {
                 onChange={(e) => setSessionForm({ ...sessionForm, scheduledAt: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Czas trwania (min)</Label>
-                <Input
-                  type="number"
-                  value={sessionForm.durationMin}
-                  onChange={(e) => setSessionForm({ ...sessionForm, durationMin: e.target.value })}
-                  min={15}
-                  step={15}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={sessionForm.status} onValueChange={(v) => setSessionForm({ ...sessionForm, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SESSION_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Czas trwania (min)</Label>
+              <Input
+                type="number"
+                value={sessionForm.durationMin}
+                onChange={(e) => setSessionForm({ ...sessionForm, durationMin: e.target.value })}
+                min={15}
+                step={15}
+              />
             </div>
           </div>
           <DialogFooter>

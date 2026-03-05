@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import {
   Brain, LayoutDashboard, Users, Settings, LogOut, BookOpen, Sun, Moon, Shield,
-  Mail, Zap, BookMarked,
+  Mail, Zap, BookMarked, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -19,7 +19,12 @@ const navItems = [
   { href: "/ustawienia", label: "Ustawienia", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { resolvedTheme, setTheme } = useTheme();
@@ -31,20 +36,45 @@ export function Sidebar() {
   const isAdmin = session?.user?.role === "ADMIN";
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col h-screen border-r bg-white dark:bg-card sticky top-0">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-        <div className="flex items-center justify-center w-9 h-9 bg-primary rounded-xl shrink-0">
-          <Brain className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <p className="font-semibold text-sm leading-none text-foreground">Coach Hub</p>
-          <p className="text-xs text-slate-400 mt-0.5">AI Superwizor</p>
-        </div>
+    <aside className={cn(
+      "shrink-0 flex flex-col h-screen border-r bg-white dark:bg-card sticky top-0 transition-all duration-200",
+      collapsed ? "w-16" : "w-64"
+    )}>
+      {/* Logo + collapse toggle */}
+      <div className={cn(
+        "flex items-center border-b border-border",
+        collapsed ? "justify-center px-0 py-5" : "gap-3 px-5 py-5"
+      )}>
+        {collapsed ? (
+          <button
+            onClick={onToggleCollapse}
+            className="flex items-center justify-center w-9 h-9 bg-primary rounded-xl shrink-0 hover:opacity-90 transition-opacity"
+            title="Rozwiń menu"
+          >
+            <Brain className="w-5 h-5 text-white" />
+          </button>
+        ) : (
+          <>
+            <div className="flex items-center justify-center w-9 h-9 bg-primary rounded-xl shrink-0">
+              <Brain className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm leading-none text-foreground">Coach Hub</p>
+              <p className="text-xs text-slate-400 mt-0.5">AI Superwizor</p>
+            </div>
+            <button
+              onClick={onToggleCollapse}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+              title="Zwiń menu"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className={cn("flex-1 py-4 space-y-0.5 overflow-y-auto", collapsed ? "px-2" : "px-3")}>
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
@@ -52,15 +82,17 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                "flex items-center rounded-xl text-sm font-medium transition-colors",
+                collapsed ? "justify-center w-10 h-10 mx-auto" : "gap-3 px-3 py-2.5",
                 active
                   ? "bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300"
                   : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200"
               )}
             >
               <Icon className="w-4 h-4 shrink-0" />
-              {item.label}
+              {!collapsed && item.label}
             </Link>
           );
         })}
@@ -68,11 +100,14 @@ export function Sidebar() {
         {/* Admin section — visible only to admins */}
         {isAdmin && (
           <>
-            <div className="pt-3 pb-1 px-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                Administracja
-              </p>
-            </div>
+            {!collapsed && (
+              <div className="pt-3 pb-1 px-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Administracja
+                </p>
+              </div>
+            )}
+            {collapsed && <div className="pt-3 pb-1"><div className="border-t border-border mx-1" /></div>}
             {[
               { href: "/admin/uzytkownicy", label: "Użytkownicy", icon: Shield },
               { href: "/admin/zaproszenia", label: "Zaproszenia", icon: Mail },
@@ -84,15 +119,17 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  title={collapsed ? item.label : undefined}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                    "flex items-center rounded-xl text-sm font-medium transition-colors",
+                    collapsed ? "justify-center w-10 h-10 mx-auto" : "gap-3 px-3 py-2.5",
                     active
                       ? "bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200"
                   )}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
-                  {item.label}
+                  {!collapsed && item.label}
                 </Link>
               );
             })}
@@ -101,45 +138,81 @@ export function Sidebar() {
       </nav>
 
       {/* User + theme toggle */}
-      <div className="border-t border-border px-3 py-3 space-y-1">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold shrink-0">
-            {session?.user?.name?.charAt(0).toUpperCase() ?? session?.user?.email?.charAt(0).toUpperCase() ?? "C"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="text-sm font-medium truncate leading-none">{session?.user?.name ?? "Coach"}</p>
-              {isAdmin && (
-                <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 px-1.5 py-0.5 rounded-full shrink-0">
-                  Admin
-                </span>
-              )}
+      <div className={cn("border-t border-border py-3 space-y-1", collapsed ? "px-2" : "px-3")}>
+        {!collapsed && (
+          <div className="flex items-center gap-3 px-2 py-2 rounded-xl">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold shrink-0">
+              {session?.user?.name?.charAt(0).toUpperCase() ?? session?.user?.email?.charAt(0).toUpperCase() ?? "C"}
             </div>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{session?.user?.email}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium truncate leading-none">{session?.user?.name ?? "Coach"}</p>
+                {isAdmin && (
+                  <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 px-1.5 py-0.5 rounded-full shrink-0">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{session?.user?.email}</p>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-1 px-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 justify-start text-muted-foreground hover:text-destructive hover:bg-red-50 dark:hover:bg-red-950/20 text-xs h-8"
-            onClick={() => signOut({ callbackUrl: "/logowanie" })}
-          >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" />
-            Wyloguj się
-          </Button>
-
-          {mounted && (
-            <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-              title={isDark ? "Tryb jasny" : "Tryb ciemny"}
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-1">
+            <div
+              className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold"
+              title={session?.user?.name ?? session?.user?.email ?? "Coach"}
             >
-              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {session?.user?.name?.charAt(0).toUpperCase() ?? session?.user?.email?.charAt(0).toUpperCase() ?? "C"}
+            </div>
+            {mounted && (
+              <button
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title={isDark ? "Tryb jasny" : "Tryb ciemny"}
+              >
+                {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              </button>
+            )}
+            <button
+              onClick={() => signOut({ callbackUrl: "/logowanie" })}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-destructive transition-colors"
+              title="Wyloguj się"
+            >
+              <LogOut className="w-3.5 h-3.5" />
             </button>
-          )}
-        </div>
+            <button
+              onClick={onToggleCollapse}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Rozwiń menu"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 px-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 justify-start text-muted-foreground hover:text-destructive hover:bg-red-50 dark:hover:bg-red-950/20 text-xs h-8"
+              onClick={() => signOut({ callbackUrl: "/logowanie" })}
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5" />
+              Wyloguj się
+            </Button>
+
+            {mounted && (
+              <button
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                title={isDark ? "Tryb jasny" : "Tryb ciemny"}
+              >
+                {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   );
