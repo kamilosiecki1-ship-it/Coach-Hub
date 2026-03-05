@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Brain } from "lucide-react";
+import { Loader2, Brain, StickyNote } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -36,6 +36,7 @@ interface SessionOffboardingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionId: string;
+  sessionEnding?: boolean;
   defaults: {
     scheduledAt: string;
     durationMin?: number | null;
@@ -74,6 +75,7 @@ export function SessionOffboardingModal({
   open,
   onOpenChange,
   sessionId,
+  sessionEnding,
   defaults,
   onSaved,
   onSkip,
@@ -87,7 +89,7 @@ export function SessionOffboardingModal({
 
   const initializedRef = useRef<string | null>(null);
 
-  const hasScratchpad = !!(defaults.sessionScratchpadMd?.trim());
+  const hasScratchpad = sessionEnding || !!(defaults.sessionScratchpadMd?.trim());
 
   useEffect(() => {
     if (!open) {
@@ -243,9 +245,12 @@ export function SessionOffboardingModal({
     <div className="space-y-5">
       {/* Podstawowe informacje */}
       <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Podstawowe informacje
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="w-0.5 h-3.5 rounded-full bg-blue-500 shrink-0" />
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest">
+            Podstawowe informacje
+          </p>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Data</Label>
@@ -264,9 +269,12 @@ export function SessionOffboardingModal({
 
       {/* Przebieg sesji */}
       <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Przebieg sesji
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="w-0.5 h-3.5 rounded-full bg-blue-500 shrink-0" />
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest">
+            Przebieg sesji
+          </p>
+        </div>
         <div className="space-y-1">
           <Label className="text-xs">Zdarzenie / temat sesji</Label>
           <Textarea value={form.eventTopic} onChange={set("eventTopic")} className="text-sm min-h-[60px]" placeholder="Główny temat lub zdarzenie omawiane na sesji…" />
@@ -283,9 +291,12 @@ export function SessionOffboardingModal({
 
       {/* Efekty i wnioski */}
       <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Efekty i wnioski
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="w-0.5 h-3.5 rounded-full bg-emerald-500 shrink-0" />
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
+            Efekty i wnioski
+          </p>
+        </div>
         <div className="space-y-1">
           <Label className="text-xs">Kluczowe wnioski i odkrycia (zwerbalizowane przez klienta)</Label>
           <Textarea value={form.keyInsightsClient} onChange={set("keyInsightsClient")} className="text-sm min-h-[60px]" placeholder="Co klient powiedział lub odkrył…" />
@@ -306,9 +317,12 @@ export function SessionOffboardingModal({
 
       {/* Refleksje coacha */}
       <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Refleksje coacha
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="w-0.5 h-3.5 rounded-full bg-violet-500 shrink-0" />
+          <p className="text-xs font-semibold text-violet-700 dark:text-violet-400 uppercase tracking-widest">
+            Refleksje coacha
+          </p>
+        </div>
         <div className="space-y-1">
           <Label className="text-xs">Refleksje coacha: learning i zastosowanie w praktyce</Label>
           <Textarea value={form.coachReflection} onChange={set("coachReflection")} className="text-sm min-h-[70px]" placeholder="Co jako coach zauważam, czego się uczę, co zastosuję…" />
@@ -326,9 +340,12 @@ export function SessionOffboardingModal({
       {/* Transkrypcja — na dole */}
       <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Transkrypcja / notatki źródłowe
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="w-0.5 h-3.5 rounded-full bg-slate-400 shrink-0" />
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+              Transkrypcja / notatki źródłowe
+            </p>
+          </div>
           <Button size="sm" onClick={handleProcessTranscript} disabled={processing || !transcript.trim()} className="h-7 text-xs">
             {processing
               ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Przetwarzanie…</>
@@ -376,17 +393,22 @@ export function SessionOffboardingModal({
             </div>
             <div className="flex flex-1 overflow-hidden min-h-0">
               {/* Left: Scratchpad reference */}
-              <div className="w-[320px] shrink-0 border-r flex flex-col bg-amber-50/40 dark:bg-amber-950/10">
-                <div className="px-4 py-3 border-b bg-amber-50 dark:bg-amber-950/20 shrink-0">
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-widest">
-                    Brudnopis z sesji
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Do wglądu — tylko odczyt</p>
+              <div className="w-[380px] shrink-0 border-r flex flex-col bg-white dark:bg-card overflow-hidden">
+                <div className="header-gradient-scratchpad px-4 py-3 shrink-0 flex items-center gap-2">
+                  <StickyNote className="w-4 h-4 text-white/80 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-white leading-none">Brudnopis</p>
+                    <p className="text-xs text-white/70 mt-0.5">notatki z sesji — tylko odczyt</p>
+                  </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                  <div className="prose-coach text-sm">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{defaults.sessionScratchpadMd ?? ""}</ReactMarkdown>
-                  </div>
+                  {defaults.sessionScratchpadMd?.trim() ? (
+                    <div className="prose-coach text-sm">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{defaults.sessionScratchpadMd}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Brudnopis jest pusty.</p>
+                  )}
                 </div>
               </div>
               {/* Right: Form */}

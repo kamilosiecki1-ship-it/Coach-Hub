@@ -23,10 +23,16 @@ function formatDate(d: Date | string | null | undefined): string {
   return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
 }
 
-function section(heading: string, value: string | null | undefined): string {
+function field(heading: string, value: string | null | undefined): string {
   const trimmed = value?.trim();
   if (!trimmed) return "";
-  return `\n## ${heading}\n${trimmed}`;
+  return `\n### ${heading}\n${trimmed}`;
+}
+
+function sectionBlock(title: string, fields: string[]): string {
+  const content = fields.filter(Boolean).join("");
+  if (!content) return "";
+  return `\n## ${title}${content}`;
 }
 
 export function generateOffboardingNote(data: OffboardingData): string {
@@ -48,21 +54,27 @@ export function generateOffboardingNote(data: OffboardingData): string {
   // Combine homework fields (backwards compat with legacy homeworkDescription)
   const homeworkCombined = [data.homework, data.homeworkDescription].filter(Boolean).join("\n\n") || null;
 
-  const sections = [
-    section("Zdarzenie / temat sesji", data.eventTopic),
-    section("Cele sesji (zwymiarowane)", data.sessionGoals),
-    section("Zastosowane ćwiczenia i techniki", data.techniques),
-    section("Kluczowe wnioski i odkrycia (słowami klienta)", data.keyInsightsClient),
-    section("Uzyskane umiejętności / efekty", data.gains),
-    section("Zadania domowe", homeworkCombined),
-    section("Feedback / uwagi", data.feedback),
-    section("Refleksje coacha: learning i zastosowanie w praktyce", data.coachReflection),
-    section("Obszary rozwoju / tematy do dalszej superwizji", data.focusAreas),
-    section("Dodatkowe przemyślenia / notatki", data.additionalNotes),
-  ].filter(Boolean);
+  const przebieg = sectionBlock("Przebieg sesji", [
+    field("Zdarzenie / temat sesji", data.eventTopic),
+    field("Cele sesji (zwymiarowane)", data.sessionGoals),
+    field("Zastosowane ćwiczenia i techniki", data.techniques),
+  ]);
 
-  for (const s of sections) {
-    lines.push(s);
+  const efekty = sectionBlock("Efekty i wnioski", [
+    field("Kluczowe wnioski i odkrycia (słowami klienta)", data.keyInsightsClient),
+    field("Uzyskane umiejętności / efekty", data.gains),
+    field("Zadania domowe", homeworkCombined),
+    field("Feedback / uwagi", data.feedback),
+  ]);
+
+  const refleksje = sectionBlock("Refleksje coacha", [
+    field("Refleksje coacha: learning i zastosowanie w praktyce", data.coachReflection),
+    field("Obszary rozwoju / tematy do dalszej superwizji", data.focusAreas),
+    field("Dodatkowe przemyślenia / notatki", data.additionalNotes),
+  ]);
+
+  for (const block of [przebieg, efekty, refleksje]) {
+    if (block) lines.push(block);
   }
 
   return lines.join("\n");

@@ -426,7 +426,7 @@ export default function KlientPage() {
             ) : (
               <div className="divide-y divide-border">
                 {client.sessions.map((s, idx) => (
-                  <Link key={s.id} href={`/klienci/${clientId}/sesje/${s.id}`} className="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-blue-50/50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer -mx-2">
+                  <Link key={s.id} href={`/klienci/${clientId}/sesje/${s.id}`} className="group flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer -mx-2">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-blue-500 dark:text-blue-400">{client.sessions.length - idx}</span>
                     </div>
@@ -442,7 +442,7 @@ export default function KlientPage() {
                       <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600")}>
                         {s.status}
                       </span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-400" />
                     </div>
                   </Link>
                 ))}

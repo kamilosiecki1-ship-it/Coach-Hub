@@ -74,6 +74,14 @@
   background: linear-gradient(160deg, #0f2454 0%, #1a3a7a 40%, #2a52a0 70%, #3a68bc 100%);
 }
 
+/* ─── Orange header gradient (scratchpad / brudnopis) ───────────────────────── */
+.header-gradient-scratchpad {
+  background: linear-gradient(160deg, #ea7c2b 0%, #f59e51 40%, #fbbf7d 70%, #fde8cc 100%);
+}
+.dark .header-gradient-scratchpad {
+  background: linear-gradient(160deg, #431407 0%, #7c2d12 40%, #9a3412 70%, #b45309 100%);
+}
+
 /* ─── Tiptap WYSIWYG editor ────────────────────────────────────────────────── */
 .tiptap-editor-content { outline: none; }
 .tiptap-editor-content h1 { font-size: 1.5rem; font-weight: 700; margin: 1.25rem 0 0.5rem; line-height: 1.3; }
@@ -102,11 +110,18 @@
 }
 
 /* ─── Markdown content styles */
+.prose-coach h1 {
+  @apply text-lg font-bold mb-3 mt-1 text-foreground;
+}
 .prose-coach h2 {
-  @apply text-lg font-semibold mt-5 mb-2 text-foreground;
+  @apply text-[0.65rem] font-semibold uppercase tracking-widest mt-6 mb-2;
+  @apply text-blue-700 border-l-2 border-blue-500 pl-2.5;
+}
+.dark .prose-coach h2 {
+  @apply text-blue-400 border-blue-400;
 }
 .prose-coach h3 {
-  @apply text-base font-semibold mt-4 mb-1.5 text-foreground;
+  @apply text-[0.65rem] font-semibold mt-3 mb-1 uppercase tracking-wide text-slate-500 dark:text-slate-400;
 }
 .prose-coach p {
   @apply text-sm text-foreground/90 mb-2 leading-relaxed;

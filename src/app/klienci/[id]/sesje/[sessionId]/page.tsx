@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MarkdownEditor } from "@/components/sessions/MarkdownEditor";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
-  ArrowLeft, Loader2, Clock, Calendar, Brain, Save, ClipboardList, Trash2, CheckCircle2,
+  ArrowLeft, Loader2, Clock, Calendar, Brain, ClipboardList, Trash2, CheckCircle2,
   FileText, StickyNote,
 } from "lucide-react";
 import {
@@ -56,7 +56,9 @@ export default function SesjaPage() {
 
   const [scheduledAt, setScheduledAt] = useState("");
   const [durationMin, setDurationMin] = useState("");
-  const [metaSaving, setMetaSaving] = useState(false);
+  const metaDirty = useRef(false);
+  const metaSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [metaSaveState, setMetaSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const [offboardingOpen, setOffboardingOpen] = useState(false);
 
@@ -87,21 +89,28 @@ export default function SesjaPage() {
     fetchOffboarding();
   }, [fetchSession, fetchOffboarding]);
 
-  const saveMetadata = async () => {
-    setMetaSaving(true);
-    const res = await fetch(`/api/sesje/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduledAt, durationMin: durationMin || null }),
-    });
-    setMetaSaving(false);
-    if (res.ok) {
-      toast({ title: "Metadata zapisana" });
-      fetchSession();
-    } else {
-      toast({ title: "Błąd zapisu", variant: "destructive" });
-    }
-  };
+  // Autosave metadata when date/duration changes
+  useEffect(() => {
+    if (!metaDirty.current) return;
+    if (metaSaveTimer.current) clearTimeout(metaSaveTimer.current);
+    metaSaveTimer.current = setTimeout(async () => {
+      metaDirty.current = false;
+      setMetaSaveState("saving");
+      try {
+        const res = await fetch(`/api/sesje/${sessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduledAt, durationMin: durationMin || null }),
+        });
+        if (res.ok) {
+          setMetaSaveState("saved");
+          setTimeout(() => setMetaSaveState("idle"), 2000);
+        }
+      } catch { /* ignore */ }
+    }, 1200);
+    return () => { if (metaSaveTimer.current) clearTimeout(metaSaveTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduledAt, durationMin, sessionId]);
 
   // Status changes to "Odbyta" only after the offboarding form is saved
   const handleEndSession = () => {
@@ -174,11 +183,11 @@ export default function SesjaPage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {isPlanned ? (
                   <button
                     onClick={handleEndSession}
-                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-sm transition-colors"
+                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-white/80 text-blue-700 hover:bg-blue-400/30 hover:text-white rounded-xl transition-colors"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Zakończ sesję
@@ -186,7 +195,7 @@ export default function SesjaPage() {
                 ) : (
                   <button
                     onClick={() => setOffboardingOpen(true)}
-                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/20 border border-white/20 text-white/90 hover:bg-white/30 rounded-xl transition-colors"
+                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/80 text-blue-700 hover:bg-blue-400/30 hover:text-white rounded-xl transition-colors"
                   >
                     <ClipboardList className="w-3.5 h-3.5" />
                     {offboarding ? "Edytuj podsumowanie" : "Uzupełnij podsumowanie"}
@@ -194,16 +203,17 @@ export default function SesjaPage() {
                 )}
                 <Link
                   href={`/klienci/${clientId}`}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors"
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/80 text-violet-700 hover:bg-violet-400/30 hover:text-white rounded-xl transition-colors"
                 >
                   <Brain className="w-3.5 h-3.5" />
                   Mentor AI
                 </Link>
                 <button
                   onClick={() => setDeleteConfirmOpen(true)}
-                  className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-red-300 transition-colors"
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/80 text-red-600 hover:bg-red-400/30 hover:text-white rounded-xl transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Usuń
                 </button>
               </div>
             </div>
@@ -218,7 +228,7 @@ export default function SesjaPage() {
               <Input
                 type="datetime-local"
                 value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
+                onChange={(e) => { setScheduledAt(e.target.value); metaDirty.current = true; }}
                 className="h-7 text-xs w-44"
               />
             </div>
@@ -227,30 +237,42 @@ export default function SesjaPage() {
               <Input
                 type="number"
                 value={durationMin}
-                onChange={(e) => setDurationMin(e.target.value)}
+                onChange={(e) => { setDurationMin(e.target.value); metaDirty.current = true; }}
                 className="h-7 text-xs w-20"
                 min={15}
                 step={15}
               />
             </div>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={saveMetadata} disabled={metaSaving}>
-              {metaSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-              Zapisz
-            </Button>
+            <div className="ml-auto flex items-center h-4">
+              {metaSaveState === "saving" && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Zapisywanie...
+                </div>
+              )}
+              {metaSaveState === "saved" && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  Zapisano
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* ── Planned session: two-column editors ── */}
         {isPlanned ? (
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 p-4 gap-4 bg-slate-100/60 dark:bg-background overflow-hidden">
             {/* Left: Session Plan */}
-            <div className="flex-1 flex flex-col border-r min-w-0">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-slate-50/80 dark:bg-slate-900/30 shrink-0">
-                <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                <p className="text-xs font-semibold text-foreground">Plan sesji</p>
-                <span className="text-xs text-muted-foreground ml-1">— przygotowanie</span>
+            <div className="flex-1 flex flex-col bg-white dark:bg-card rounded-2xl border shadow-sm overflow-hidden min-w-0">
+              <div className="header-gradient px-4 py-3 shrink-0 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-white/80 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-white leading-none">Plan sesji</p>
+                  <p className="text-xs text-white/70 mt-0.5">przygotowanie i struktura</p>
+                </div>
               </div>
-              <div className="flex-1 overflow-hidden bg-white dark:bg-card">
+              <div className="flex-1 overflow-hidden">
                 <MarkdownEditor
                   sessionId={sessionId}
                   initialValue={session.planMd}
@@ -261,18 +283,21 @@ export default function SesjaPage() {
             </div>
 
             {/* Right: Scratchpad */}
-            <div className="flex-1 flex flex-col min-w-0">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-slate-50/80 dark:bg-slate-900/30 shrink-0">
-                <StickyNote className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <p className="text-xs font-semibold text-foreground">Brudnopis</p>
-                <span className="text-xs text-muted-foreground ml-1">— notatki w trakcie</span>
+            <div className="flex-1 flex flex-col bg-white dark:bg-card rounded-2xl border shadow-sm overflow-hidden min-w-0">
+              <div className="header-gradient-scratchpad px-4 py-3 shrink-0 flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-white/80 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-white leading-none">Brudnopis</p>
+                  <p className="text-xs text-white/70 mt-0.5">notatki w trakcie sesji</p>
+                </div>
               </div>
-              <div className="flex-1 overflow-hidden bg-white dark:bg-card">
+              <div className="flex-1 overflow-hidden">
                 <MarkdownEditor
                   sessionId={sessionId}
                   initialValue={session.scratchpadMd}
                   saveField="scratchpadMd"
                   placeholder="Szybkie notatki podczas sesji — cytaty klienta, obserwacje, pomysły…"
+                  onSave={(md) => setSession((prev) => prev ? { ...prev, scratchpadMd: md } : null)}
                 />
               </div>
             </div>
@@ -282,25 +307,22 @@ export default function SesjaPage() {
           <div className="flex-1 overflow-y-auto">
             {/* Generated note */}
             <div className="px-6 pt-5 pb-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Notatka wygenerowana</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Automatycznie stworzona na podstawie formularza podsumowania sesji</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-xs"
-                  onClick={() => setOffboardingOpen(true)}
-                >
-                  <ClipboardList className="w-3 h-3 mr-1" />
-                  {offboarding ? "Edytuj" : "Uzupełnij"}
-                </Button>
-              </div>
-
               {offboarding?.generatedNoteMd ? (
                 <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl px-5 py-4 prose-coach overflow-auto">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h2: ({ children }) => {
+                        const text = String(children);
+                        const colorClass = text.includes("Efekty")
+                          ? "!text-emerald-700 !border-emerald-500 dark:!text-emerald-400 dark:!border-emerald-400"
+                          : text.includes("Refleksje")
+                          ? "!text-violet-700 !border-violet-500 dark:!text-violet-400 dark:!border-violet-400"
+                          : "";
+                        return <h2 className={colorClass}>{children}</h2>;
+                      },
+                    }}
+                  >
                     {offboarding.generatedNoteMd}
                   </ReactMarkdown>
                 </div>
@@ -318,17 +340,18 @@ export default function SesjaPage() {
               )}
             </div>
 
-            <Separator />
-
             {/* Plan + Scratchpad side by side */}
-            <div className="flex" style={{ minHeight: "420px" }}>
+            <div className="flex p-4 gap-4 bg-slate-100/60 dark:bg-background" style={{ minHeight: "420px" }}>
               {/* Plan sesji */}
-              <div className="flex-1 flex flex-col border-r min-w-0">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/80 dark:bg-slate-900/30 border-b shrink-0">
-                  <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  <p className="text-xs font-semibold text-foreground">Plan sesji</p>
+              <div className="flex-1 flex flex-col bg-white dark:bg-card rounded-2xl border shadow-sm overflow-hidden min-w-0">
+                <div className="header-gradient px-4 py-3 shrink-0 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-white/80 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-white leading-none">Plan sesji</p>
+                    <p className="text-xs text-white/70 mt-0.5">przygotowanie i struktura</p>
+                  </div>
                 </div>
-                <div className="flex-1 bg-white dark:bg-card">
+                <div className="flex-1 overflow-hidden">
                   <MarkdownEditor
                     sessionId={sessionId}
                     initialValue={session.planMd}
@@ -339,12 +362,15 @@ export default function SesjaPage() {
               </div>
 
               {/* Brudnopis */}
-              <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/80 dark:bg-slate-900/30 border-b shrink-0">
-                  <StickyNote className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <p className="text-xs font-semibold text-foreground">Brudnopis</p>
+              <div className="flex-1 flex flex-col bg-white dark:bg-card rounded-2xl border shadow-sm overflow-hidden min-w-0">
+                <div className="header-gradient-scratchpad px-4 py-3 shrink-0 flex items-center gap-2">
+                  <StickyNote className="w-4 h-4 text-white/80 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-white leading-none">Brudnopis</p>
+                    <p className="text-xs text-white/70 mt-0.5">notatki w trakcie sesji</p>
+                  </div>
                 </div>
-                <div className="flex-1 bg-white dark:bg-card">
+                <div className="flex-1 overflow-hidden">
                   <MarkdownEditor
                     sessionId={sessionId}
                     initialValue={session.scratchpadMd}
@@ -400,6 +426,7 @@ export default function SesjaPage() {
         open={offboardingOpen}
         onOpenChange={setOffboardingOpen}
         sessionId={sessionId}
+        sessionEnding={isPlanned}
         defaults={{
           scheduledAt: session.scheduledAt,
           durationMin: session.durationMin,
