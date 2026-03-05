@@ -95,7 +95,7 @@ export default async function PulpitPage() {
     prisma.mentorConversation.findMany({
       where: { userId },
       orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
-      take: 8,
+      take: 4,
       include: { client: { select: { id: true, name: true } } },
     }),
   ]);

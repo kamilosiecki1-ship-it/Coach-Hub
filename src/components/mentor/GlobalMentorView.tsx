@@ -20,7 +20,7 @@ import remarkGfm from "remark-gfm";
 import {
   Loader2, Send, Plus, MessageSquare, Calendar, Gem, Target, Sparkles,
   ClipboardList, BookOpen, CheckCircle2, AlertCircle, ChevronRight, ArrowDown,
-  ArrowLeft, Users, Brain,
+  ArrowLeft, Users, Brain, Trash2,
 } from "lucide-react";
 import { MentorMark } from "@/components/ui/mentor-mark";
 import { Button } from "@/components/ui/button";
@@ -178,6 +178,9 @@ export function GlobalMentorView({ aiEnabled, initialConvId }: GlobalMentorViewP
   const [newConvCompletedSessions, setNewConvCompletedSessions] = useState<SessionOption[]>([]);
   const [loadingNewConvData, setLoadingNewConvData] = useState(false);
   const [creatingConv, setCreatingConv] = useState(false);
+
+  // ── Delete conversation confirm ────────────────────────────────────────────
+  const [deleteConvId, setDeleteConvId] = useState<string | null>(null);
 
   // ── Global picker: client+session for GENERAL conversations ───────────────
   // Handles both "Dodaj do Planu Sesji" and "Pomóż zaplanować sesję"
@@ -340,6 +343,24 @@ export function GlobalMentorView({ aiEnabled, initialConvId }: GlobalMentorViewP
     setCurrentPlannedSessions([]);
     fetchConversations();
   }, [activeConv, fetchConversations]);
+
+  // ── Delete conversation ────────────────────────────────────────────────────
+  const deleteConversation = useCallback(async (id: string) => {
+    const res = await fetch(`/api/mentor/conversations/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast({ title: "Błąd", description: "Nie udało się usunąć rozmowy.", variant: "destructive" });
+      return;
+    }
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (activeConv?.id === id) {
+      activeConvRef.current = null;
+      setActiveConv(null);
+      setMessages([]);
+      setStreamingContent("");
+      setCurrentPlannedSessions([]);
+    }
+    setDeleteConvId(null);
+  }, [activeConv, toast]);
 
   // ── Streaming send ─────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text: string) => {
@@ -661,20 +682,23 @@ export function GlobalMentorView({ aiEnabled, initialConvId }: GlobalMentorViewP
             </div>
           ) : (
             filteredConversations.map((conv) => (
-              <button
+              <div
                 key={conv.id}
-                onClick={() => openConversation(conv)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-all text-left",
+                  "group relative w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-all text-left cursor-pointer",
                   activeConv?.id === conv.id
                     ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20 shadow-sm"
                     : "border-slate-200 dark:border-slate-700 bg-white dark:bg-card hover:border-blue-200 dark:hover:border-slate-600 hover:shadow-sm"
                 )}
+                onClick={() => openConversation(conv)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && openConversation(conv)}
               >
                 <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                   <MessageSquare className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-5">
                   <p className="text-sm font-medium truncate leading-tight">{conv.title}</p>
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", CONTEXT_TYPE_COLORS[conv.contextType])}>
@@ -692,7 +716,16 @@ export function GlobalMentorView({ aiEnabled, initialConvId }: GlobalMentorViewP
                     )}
                   </div>
                 </div>
-              </button>
+                {/* Trash button — visible on hover */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setDeleteConvId(conv.id); }}
+                  className="absolute top-1.5 right-1.5 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  title="Usuń rozmowę"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ))
           )}
         </div>
@@ -1250,6 +1283,34 @@ export function GlobalMentorView({ aiEnabled, initialConvId }: GlobalMentorViewP
               ))}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete conversation confirmation ──────────────────────────────── */}
+      <Dialog open={!!deleteConvId} onOpenChange={(open) => { if (!open) setDeleteConvId(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Usuń rozmowę</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Czy na pewno chcesz usunąć tę rozmowę? Tej operacji nie da się cofnąć.
+          </p>
+          <div className="flex justify-end gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConvId(null)}
+              className="h-9 px-4 text-sm rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              Anuluj
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteConvId && deleteConversation(deleteConvId)}
+              className="h-9 px-4 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors font-medium"
+            >
+              Usuń
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

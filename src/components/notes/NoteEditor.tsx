@@ -344,16 +344,16 @@ export function NoteEditor({
 
       {/* Source reference banner (shown for notes created from Mentor AI) */}
       {sourceConversationId && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/20 border-b border-blue-100 dark:border-blue-900/40 shrink-0">
-          <Bot className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-          <span className="text-xs text-blue-700 dark:text-blue-300 flex-1 min-w-0 truncate">
+        <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-950/20 border-b border-orange-100 dark:border-orange-900/40 shrink-0">
+          <Bot className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+          <span className="text-xs text-orange-700 dark:text-orange-300 flex-1 min-w-0 truncate">
             Źródło: Mentor AI — {sourceConversationTitle ?? "rozmowa"}
           </span>
           <a
             href={`/mentor?convId=${sourceConversationId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 shrink-0 font-medium transition-colors"
+            className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-200 shrink-0 font-medium transition-colors"
           >
             Przejdź do rozmowy
             <ExternalLink className="w-3 h-3" />

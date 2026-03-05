@@ -11,7 +11,7 @@ function formatTitle(contextType: string, contextDate?: string): string {
   });
   if (contextType === "PROCESS") return `Cały proces — ${date}`;
   if (contextType === "GENERAL") return `Ogólne pytanie — ${date}`;
-  if (contextType === "SESSION" && contextDate) return `${contextDate} — ${date}`;
+  if (contextType === "SESSION" && contextDate) return contextDate;
   return `Rozmowa — ${date}`;
 }
 
@@ -102,7 +102,11 @@ export async function POST(req: NextRequest) {
     const sessionsBeforeOrEqual = await prisma.session.count({
       where: { clientId, scheduledAt: { lte: s.scheduledAt } },
     });
-    sessionLabel = `Sesja ${sessionsBeforeOrEqual}`;
+    const sessionDate = s.scheduledAt.toLocaleDateString("pl-PL", {
+      day: "numeric",
+      month: "long",
+    });
+    sessionLabel = `Sesja ${sessionsBeforeOrEqual} z ${sessionDate}`;
     resolvedSessionId = contextSessionId;
   }
 
