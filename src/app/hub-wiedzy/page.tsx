@@ -205,7 +205,7 @@ export default function HubWiedzyPage() {
               </div>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold bg-white text-blue-700 hover:bg-blue-50 rounded-xl shadow-sm transition-colors shrink-0"
+                className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold bg-[#5A3FE0] text-white hover:bg-[#6e55e8] rounded-xl shadow-sm transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 Dodaj własną
