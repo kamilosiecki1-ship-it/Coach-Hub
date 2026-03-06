@@ -19,6 +19,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/aiService";
 import { buildContextPack, buildSystemMessage } from "@/lib/mentorContext";
+import { checkAiRateLimit } from "@/lib/rateLimit";
 import OpenAI from "openai";
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o";
@@ -96,6 +97,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const userId = (session.user as { id: string }).id;
+
+  // Rate limit check
+  const rateLimit = await checkAiRateLimit(userId);
+  if (rateLimit.blocked) {
+    return NextResponse.json({ error: rateLimit.reason }, { status: 429 });
+  }
+
   const { content } = await req.json();
 
   if (!content?.trim()) {
