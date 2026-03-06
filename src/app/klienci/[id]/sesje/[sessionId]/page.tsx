@@ -19,7 +19,7 @@ import {
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, SESSION_STATUS_LABEL } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { MentorAIPanel } from "@/components/mentor/MentorAIPanel";
@@ -235,7 +235,7 @@ export default function SesjaPage() {
                     ? "bg-white/20 text-white/90 border-white/20"
                     : "bg-red-400/20 text-red-200 border-red-300/30"
                 )}>
-                  {session.status}
+                  {SESSION_STATUS_LABEL[session.status] ?? session.status}
                 </span>
               </div>
 

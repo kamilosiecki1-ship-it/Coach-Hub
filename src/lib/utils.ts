@@ -65,3 +65,10 @@ export const statusBadgeVariant: Record<SessionStatus, "default" | "secondary" |
   Odbyta: "default",
   Anulowana: "destructive",
 };
+
+/** Maps DB status values to user-facing display labels (DB values are never changed). */
+export const SESSION_STATUS_LABEL: Record<string, string> = {
+  Zaplanowana: "Zaplanowana",
+  Odbyta: "Zakończona",
+  Anulowana: "Anulowana",
+};

@@ -182,3 +182,13 @@
 .dark .tiptap-editor-content a {
   @apply text-violet-400 hover:text-violet-200;
 }
+
+/* ─── TipTap highlight marks ─────────────────────────────────────────────── */
+.tiptap-editor-content mark {
+  border-radius: 2px;
+  padding: 0 1px;
+  color: inherit;
+}
+.dark .tiptap-editor-content mark {
+  opacity: 0.85;
+}

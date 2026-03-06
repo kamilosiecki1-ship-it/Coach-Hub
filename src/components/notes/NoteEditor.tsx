@@ -5,11 +5,20 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import TiptapLink from "@tiptap/extension-link";
+import Highlight from "@tiptap/extension-highlight";
 import {
   Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Undo2, Redo2, Link as LinkIcon,
-  CheckCircle2, Loader2, Pin, PinOff, Trash2, BookMarked, Bot, ExternalLink,
+  CheckCircle2, Loader2, Pin, PinOff, Trash2, BookMarked, Bot, ExternalLink, Highlighter,
 } from "lucide-react";
+
+const HIGHLIGHT_COLORS = [
+  { color: "#FEF08A", label: "Żółty" },
+  { color: "#BBF7D0", label: "Zielony" },
+  { color: "#BAE6FD", label: "Niebieski" },
+  { color: "#FBCFE8", label: "Różowy" },
+  { color: "#DDD6FE", label: "Fioletowy" },
+];
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,9 +80,22 @@ export function NoteEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pinned, setPinned] = useState(isPinned);
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const highlightPickerRef = useRef<HTMLDivElement>(null);
 
   const titleRef = useRef(initialTitle);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!showHighlightPicker) return;
+    function handle(e: MouseEvent) {
+      if (!highlightPickerRef.current?.contains(e.target as Node)) {
+        setShowHighlightPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [showHighlightPicker]);
 
   const doSave = useCallback(async (
     currentTitle: string,
@@ -106,6 +128,7 @@ export function NoteEditor({
       Placeholder.configure({ placeholder: "Zacznij pisać…" }),
       Underline,
       TiptapLink.configure({ openOnClick: false }),
+      Highlight.configure({ multicolor: true }),
     ],
     content: initialContent ?? undefined,
     editorProps: {
@@ -246,6 +269,47 @@ export function NoteEditor({
         >
           <UnderlineIcon className="w-3.5 h-3.5" />
         </ToolbarBtn>
+
+        {/* Highlight color picker */}
+        <div className="relative" ref={highlightPickerRef}>
+          <ToolbarBtn
+            onClick={() => setShowHighlightPicker((p) => !p)}
+            active={editor.isActive("highlight") || showHighlightPicker}
+            title="Podświetlenie tekstu"
+          >
+            <Highlighter className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          {showHighlightPicker && (
+            <div className="absolute top-full left-0 mt-1 flex items-center gap-1 p-1.5 rounded-lg border bg-background shadow-md z-50">
+              {HIGHLIGHT_COLORS.map(({ color, label }) => (
+                <button
+                  key={color}
+                  type="button"
+                  title={label}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    editor.chain().focus().toggleHighlight({ color }).run();
+                    setShowHighlightPicker(false);
+                  }}
+                  className="w-5 h-5 rounded-full border border-black/10 hover:scale-110 transition-transform shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+              <button
+                type="button"
+                title="Usuń podświetlenie"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  editor.chain().focus().unsetHighlight().run();
+                  setShowHighlightPicker(false);
+                }}
+                className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 text-[10px] leading-none shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
 
         <Divider />
 

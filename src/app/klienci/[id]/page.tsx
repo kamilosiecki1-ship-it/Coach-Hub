@@ -18,7 +18,7 @@ import {
   FileDown, TriangleAlert, AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatDate, formatDateTime, STAGE_OPTIONS } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, STAGE_OPTIONS, SESSION_STATUS_LABEL } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { MentorAIPanel } from "@/components/mentor/MentorAIPanel";
 
@@ -164,6 +164,40 @@ function RetrospectiveReport({ report }: { report: RetrospectiveReportV1 }) {
   );
 }
 
+function retroJsonToMarkdown(report: RetrospectiveReportV1): string {
+  const lines: string[] = [];
+  lines.push(`## ${report.title || "Retrospektywa"}`);
+  lines.push("");
+  if (report.summary?.oneLiner) {
+    lines.push(report.summary.oneLiner);
+    lines.push("");
+  }
+  if (report.summary?.processSnapshot?.length > 0) {
+    lines.push("**Przebieg procesu:** " + report.summary.processSnapshot.join(" · "));
+    lines.push("");
+  }
+  for (const section of report.sections ?? []) {
+    lines.push(`### ${section.title}`);
+    lines.push("");
+    for (const item of section.items ?? []) {
+      lines.push(`- ${item}`);
+    }
+    lines.push("");
+  }
+  if (report.reflectionQuestions?.length > 0) {
+    lines.push("### Pytania do refleksji");
+    lines.push("");
+    for (const q of report.reflectionQuestions) {
+      lines.push(`- ${q}`);
+    }
+    lines.push("");
+  }
+  if (report.dataQuality?.coverageNote) {
+    lines.push(`*${report.dataQuality.coverageNote}*`);
+  }
+  return lines.join("\n").trim();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function KlientPage() {
@@ -204,6 +238,9 @@ export default function KlientPage() {
   const [retroInsufficientData, setRetroInsufficientData] = useState<string[] | null>(null);
   const [deleteRetroId, setDeleteRetroId] = useState<string | null>(null);
   const [deletingRetro, setDeletingRetro] = useState(false);
+  const [editingRetroId, setEditingRetroId] = useState<string | null>(null);
+  const [retroEditDraft, setRetroEditDraft] = useState("");
+  const [savingRetro, setSavingRetro] = useState(false);
   const [closeProcessOpen, setCloseProcessOpen] = useState(false);
   const [closingProcess, setClosingProcess] = useState(false);
   const [finalReportExpanded, setFinalReportExpanded] = useState(true);
@@ -264,6 +301,27 @@ export default function KlientPage() {
       if (expandedRetro === id) setExpandedRetro(null);
     } else {
       toast({ title: "Błąd usuwania", description: "Nie udało się usunąć retrospektywy.", variant: "destructive" });
+    }
+  };
+
+  const handleSaveRetro = async (id: string) => {
+    setSavingRetro(true);
+    const res = await fetch(`/api/ai/retrospective/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reportMd: retroEditDraft }),
+    });
+    setSavingRetro(false);
+    if (res.ok) {
+      setClient((prev) => prev ? {
+        ...prev,
+        retrospectives: prev.retrospectives.map((r) =>
+          r.id === id ? { ...r, reportJson: null, reportMd: retroEditDraft } : r
+        ),
+      } : prev);
+      setEditingRetroId(null);
+    } else {
+      toast({ title: "Błąd zapisu", description: "Nie udało się zapisać zmian.", variant: "destructive" });
     }
   };
 
@@ -479,7 +537,7 @@ export default function KlientPage() {
                         </span>
                       )}
                       <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600")}>
-                        {s.status}
+                        {SESSION_STATUS_LABEL[s.status] ?? s.status}
                       </span>
                       <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-400" />
                     </div>
@@ -566,6 +624,20 @@ export default function KlientPage() {
                           </button>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
+                              onClick={() => {
+                                const draft = r.reportJson
+                                  ? retroJsonToMarkdown(r.reportJson)
+                                  : (r.reportMd ?? "");
+                                setRetroEditDraft(draft);
+                                setEditingRetroId(r.id);
+                                setExpandedRetro(r.id);
+                              }}
+                              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                              title="Edytuj retrospektywę"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => setDeleteRetroId(r.id)}
                               className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                               title="Usuń retrospektywę"
@@ -582,7 +654,33 @@ export default function KlientPage() {
                         {/* Expanded body */}
                         {expandedRetro === r.id && (
                           <div className="border-t border-slate-200 dark:border-slate-700 px-4 pb-5 pt-4">
-                            {r.reportJson ? (
+                            {editingRetroId === r.id ? (
+                              <div className="space-y-3">
+                                <textarea
+                                  className="w-full min-h-[320px] text-sm font-mono p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 resize-y focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+                                  value={retroEditDraft}
+                                  onChange={(e) => setRetroEditDraft(e.target.value)}
+                                  placeholder="Treść retrospektywy (Markdown)…"
+                                />
+                                <div className="flex items-center gap-2 justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditingRetroId(null)}
+                                    disabled={savingRetro}
+                                  >
+                                    Anuluj
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSaveRetro(r.id)}
+                                    disabled={savingRetro}
+                                  >
+                                    {savingRetro ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />Zapisywanie…</> : "Zapisz"}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : r.reportJson ? (
                               <RetrospectiveReport report={r.reportJson} />
                             ) : r.reportMd ? (
                               <>

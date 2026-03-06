@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, SESSION_STATUS_LABEL } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type CalendarSession = {
@@ -262,7 +262,7 @@ export function MonthCalendar({
                         STATUS_BADGE[s.status] ?? "bg-slate-100 text-slate-600"
                       )}
                     >
-                      {s.status}
+                      {SESSION_STATUS_LABEL[s.status] ?? s.status}
                     </span>
                     <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
                   </div>

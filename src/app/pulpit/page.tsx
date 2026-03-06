@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ChevronRight, BookMarked, Pin, Brain } from "lucide-react";
 import Link from "next/link";
 import { startOfMonth, endOfMonth, getDaysInMonth, getDay } from "date-fns";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, SESSION_STATUS_LABEL } from "@/lib/utils";
 import { MonthCalendar } from "@/components/dashboard/MonthCalendar";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -270,7 +270,7 @@ export default async function PulpitPage() {
                           STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600"
                         )}
                       >
-                        {s.status}
+                        {SESSION_STATUS_LABEL[s.status] ?? s.status}
                       </span>
                       <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
                     </div>

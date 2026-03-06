@@ -579,7 +579,7 @@ export function ClientReportDocument({
                       )}
                     </View>
                     <Text style={[s.badge, { color: sc.color, backgroundColor: sc.bg, borderColor: sc.border }]}>
-                      {session.status}
+                      {session.status === "Odbyta" ? "Zakończona" : session.status}
                     </Text>
                   </View>
 
