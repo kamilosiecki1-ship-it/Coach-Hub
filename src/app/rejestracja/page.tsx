@@ -7,8 +7,58 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Brain, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
-function RegisterForm() {
+const YOUTUBE_ID = "ic11FFQs-RA";
+
+function WelcomeScreen() {
   const router = useRouter();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500 p-4">
+      <div className="w-full max-w-2xl">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 shadow-lg">
+            <Brain className="w-9 h-9 text-white" />
+          </div>
+          <h1 className="text-2xl font-semibold text-white">Witaj w SessionLab!</h1>
+          <p className="text-blue-200 text-sm mt-1">Twoje konto zostało pomyślnie utworzone.</p>
+        </div>
+
+        <div className="bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-8">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold mb-1">Zanim zaczniesz...</h2>
+            <p className="text-sm text-muted-foreground">
+              Obejrzyj krótki filmik, który pokaże Ci jak korzystać z platformy.
+            </p>
+          </div>
+
+          <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-6 bg-black shadow-md">
+            <iframe
+              src={`https://www.youtube.com/embed/${YOUTUBE_ID}?rel=0`}
+              title="SessionLab — samouczek"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              className="w-full"
+              onClick={() => router.push("/logowanie?registered=1")}
+            >
+              Przejdź do logowania →
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Możesz wrócić do tego filmiku w każdej chwili w{" "}
+              <span className="font-medium">Ustawieniach</span>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
@@ -56,7 +106,7 @@ function RegisterForm() {
     });
     setLoading(false);
     if (res.ok) {
-      router.push("/logowanie?registered=1");
+      onSuccess();
     } else {
       const data = await res.json();
       setError(data.error ?? "Rejestracja nie powiodła się.");
@@ -186,15 +236,21 @@ function RegisterForm() {
 }
 
 export default function Rejestracja() {
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  if (showWelcome) {
+    return <WelcomeScreen />;
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 dark:from-slate-950 dark:via-blue-950/20 dark:to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 shadow-lg">
             <Brain className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">SessionLab</h1>
-          <p className="text-muted-foreground text-sm mt-1">AI Superwizor Coachingu</p>
+          <h1 className="text-2xl font-semibold text-white">SessionLab</h1>
+          <p className="text-blue-200 text-sm mt-1">AI Superwizor Coachingu</p>
         </div>
         <Suspense
           fallback={
@@ -203,7 +259,7 @@ export default function Rejestracja() {
             </div>
           }
         >
-          <RegisterForm />
+          <RegisterForm onSuccess={() => setShowWelcome(true)} />
         </Suspense>
       </div>
     </div>

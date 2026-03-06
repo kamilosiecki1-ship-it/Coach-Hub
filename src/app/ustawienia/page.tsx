@@ -39,6 +39,23 @@ export default function UstawieniaPage() {
         </div>
 
         <div className="space-y-4">
+          {/* Samouczek */}
+          <div className="bg-white dark:bg-card rounded-2xl border p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-sm font-semibold">Samouczek</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Krótkie wprowadzenie do platformy SessionLab.</p>
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-sm">
+              <iframe
+                src="https://www.youtube.com/embed/ic11FFQs-RA?rel=0"
+                title="SessionLab — samouczek"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            </div>
+          </div>
+
           {/* Theme */}
           <div className="bg-white dark:bg-card rounded-2xl border p-6">
             <div className="flex items-center gap-2 mb-1">

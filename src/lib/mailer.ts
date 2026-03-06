@@ -63,6 +63,16 @@ export async function sendInviteEmail(to: string, registrationLink: string, role
               Mamy nadzieję, że Session Lab wesprze Twój rozwój i rozwój Twoich klientów. 🚀
             </p>
           </div>
+
+          <!-- SAMOUCZEK -->
+          <div style="margin:20px 0 0;padding:20px 22px;background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;text-align:center">
+            <p style="margin:0 0 6px;font-weight:700;color:#15803d;font-size:14px">🎬 Krótki samouczek (2 min)</p>
+            <p style="margin:0 0 14px;color:#334155;font-size:13px">Zanim zaczniesz — obejrzyj jak korzystać z platformy.</p>
+            <a href="https://youtu.be/ic11FFQs-RA"
+               style="display:inline-block;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;text-decoration:none;padding:11px 26px;border-radius:8px;font-weight:600;font-size:14px">
+              ▶&nbsp; Obejrzyj filmik
+            </a>
+          </div>
         </div>
 
         <!-- STOPKA -->
