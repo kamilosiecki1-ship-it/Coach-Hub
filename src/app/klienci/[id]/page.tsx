@@ -369,10 +369,9 @@ export default function KlientPage() {
       body: JSON.stringify({ clientId, ...sessionForm }),
     });
     if (res.ok) {
-      const newSession = await res.json();
       toast({ title: "Sesja dodana" });
       setSessionDialogOpen(false);
-      router.push(`/klienci/${clientId}/sesje/${newSession.id}`);
+      fetchClient();
     } else {
       toast({ title: "Błąd dodawania sesji", variant: "destructive" });
     }

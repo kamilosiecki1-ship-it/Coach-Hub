@@ -9,6 +9,7 @@ import Link from "next/link";
 import { startOfMonth, endOfMonth, getDaysInMonth, getDay } from "date-fns";
 import { cn, formatDateTime, SESSION_STATUS_LABEL } from "@/lib/utils";
 import { MonthCalendar } from "@/components/dashboard/MonthCalendar";
+import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 
 const STATUS_COLORS: Record<string, string> = {
   Zaplanowana: "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300",
@@ -138,6 +139,7 @@ export default async function PulpitPage() {
 
   return (
     <AppLayout>
+      <DashboardRefresher />
       <div className="p-8 max-w-6xl mx-auto">
         {/* ── Hero ──────────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-2xl header-gradient mb-6">
