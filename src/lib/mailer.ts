@@ -86,24 +86,56 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const from = process.env.EMAIL_FROM ?? "SessionLab <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "SessionLab <hello@sessionlab.app>";
   const ttl = process.env.RESET_TOKEN_TTL_MINUTES ?? "60";
 
   await resend.emails.send({
     from,
     to,
-    subject: "SessionLab — reset hasła",
+    subject: "Session Lab — reset hasła",
     html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <h2 style="color:#1d4ed8">Reset hasła — SessionLab</h2>
-        <p>Otrzymaliśmy prośbę o reset hasła dla Twojego konta.</p>
-        <p>
-          <a href="${resetLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">
-            Ustaw nowe hasło
-          </a>
-        </p>
-        <p style="color:#64748b;font-size:13px">Link wygasa po ${ttl} minutach.</p>
-        <p style="color:#94a3b8;font-size:12px">Jeśli nie prosiłeś o reset hasła, zignoruj tę wiadomość.</p>
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+
+        <!-- BANER -->
+        <div style="background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);padding:40px 32px 36px;text-align:center">
+          <div style="display:inline-block">
+            <span style="font-size:28px;font-weight:300;color:#bfdbfe;letter-spacing:4px;text-transform:uppercase">Session</span>
+            <span style="font-size:28px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase"> Lab</span>
+          </div>
+          <p style="margin:10px 0 0;color:#bfdbfe;font-size:13px;letter-spacing:1px">AI Superwizor Coachingu</p>
+        </div>
+
+        <!-- TREŚĆ -->
+        <div style="padding:36px 32px 28px;background:#fff">
+          <h2 style="margin:0 0 16px;font-size:22px;color:#1e3a8a;font-weight:700">Reset hasła 🔐</h2>
+          <p style="margin:0 0 12px;color:#334155;font-size:15px;line-height:1.6">
+            Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta w Session Lab.
+          </p>
+          <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.6">
+            Kliknij poniższy przycisk, aby ustawić nowe hasło:
+          </p>
+
+          <!-- PRZYCISK -->
+          <div style="text-align:center;margin:0 0 28px">
+            <a href="${resetLink}"
+               style="display:inline-block;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.3px">
+              Ustaw nowe hasło
+            </a>
+          </div>
+
+          <p style="margin:0;color:#64748b;font-size:13px;text-align:center">
+            Link wygasa po ${ttl} minutach.
+          </p>
+        </div>
+
+        <!-- STOPKA -->
+        <div style="padding:20px 32px;background:#f1f5f9;text-align:center">
+          <p style="margin:0;color:#94a3b8;font-size:12px">
+            Jeśli nie prosiłeś o reset hasła, możesz bezpiecznie zignorować tę wiadomość.
+          </p>
+          <p style="margin:6px 0 0;color:#cbd5e1;font-size:11px">Session Lab · sessionlab.app</p>
+        </div>
+
       </div>
     `,
   });

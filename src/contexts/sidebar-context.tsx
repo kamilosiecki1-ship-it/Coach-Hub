@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 
 interface SidebarContextType {
   collapsed: boolean;
@@ -15,11 +15,6 @@ const SidebarContext = createContext<SidebarContextType>({
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsedState] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("sidebarCollapsed");
-    if (stored !== null) setCollapsedState(stored === "true");
-  }, []);
 
   const setCollapsed = useCallback((v: boolean) => {
     setCollapsedState(v);
