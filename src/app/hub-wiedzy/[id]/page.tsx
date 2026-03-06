@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Loader2, Heart, NotebookPen, Check, BookOpen, ClipboardList } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2, Heart, NotebookPen, Check, BookOpen, ClipboardList, ChevronLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,6 +29,9 @@ interface Tool {
   note: string;
 }
 
+interface ClientOption { id: string; name: string; }
+interface SessionOption { id: string; scheduledAt: string; sessionNumber: number; }
+
 export default function HubWiedzyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -47,14 +50,24 @@ export default function HubWiedzyDetailPage() {
   const [form, setForm] = useState({ name: "", category: "", tags: "", description: "", structure: "", example: "" });
   const [saving, setSaving] = useState(false);
 
-  interface PlannedSession { id: string; scheduledAt: string; clientName: string; }
-  const [plannedSessions, setPlannedSessions] = useState<PlannedSession[]>([]);
-  const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
+  // ── Add-to-plan 2-step picker ────────────────────────────────────────────
+  type PickerStep = "client" | "session" | null;
+  const [pickerStep, setPickerStep] = useState<PickerStep>(null);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
+  const [clientSessions, setClientSessions] = useState<SessionOption[]>([]);
   const [addingToPlan, setAddingToPlan] = useState(false);
 
+  const closePicker = () => {
+    setPickerStep(null);
+    setSelectedClient(null);
+    setClientSessions([]);
+  };
+
   const doAddToPlan = async (sessionId: string) => {
+    closePicker();
     setAddingToPlan(true);
-    setSessionPickerOpen(false);
     try {
       const res = await fetch(`/api/hub-wiedzy/${id}/add-to-plan`, {
         method: "POST",
@@ -79,27 +92,47 @@ export default function HubWiedzyDetailPage() {
   };
 
   const handleAddToPlan = async () => {
-    setAddingToPlan(true);
+    setPickerLoading(true);
     try {
-      const res = await fetch("/api/sesje?status=planned");
-      const sessions: PlannedSession[] = res.ok ? await res.json() : [];
-      if (sessions.length === 0) {
-        setAddingToPlan(false);
-        toast({ title: "Brak zaplanowanych sesji", description: "Zaplanuj sesję, aby dodać do planu.", variant: "destructive" });
-      } else if (sessions.length === 1) {
-        setAddingToPlan(false);
-        await doAddToPlan(sessions[0].id);
-      } else {
-        setAddingToPlan(false);
-        setPlannedSessions(sessions);
-        setSessionPickerOpen(true);
+      const res = await fetch("/api/klienci");
+      const all: { id: string; name: string; closedAt?: string | null }[] = res.ok ? await res.json() : [];
+      const active = all.filter((c) => !c.closedAt).map((c) => ({ id: c.id, name: c.name }));
+      if (active.length === 0) {
+        toast({ title: "Brak klientów", description: "Dodaj klienta, aby móc planować sesje.", variant: "destructive" });
+        return;
       }
+      setClients(active);
+      setPickerStep("client");
     } catch {
-      setAddingToPlan(false);
       toast({ title: "Błąd połączenia", variant: "destructive" });
+    } finally {
+      setPickerLoading(false);
     }
   };
 
+  const handleClientSelected = async (client: ClientOption) => {
+    setSelectedClient(client);
+    setPickerLoading(true);
+    try {
+      const res = await fetch(`/api/mentor/client-sessions?clientId=${client.id}&type=planned`);
+      const sessions: SessionOption[] = res.ok ? await res.json() : [];
+      if (sessions.length === 0) {
+        toast({ title: "Brak zaplanowanych sesji", description: `Klient ${client.name} nie ma nadchodzących sesji.`, variant: "destructive" });
+        setPickerStep("client");
+        setSelectedClient(null);
+        return;
+      }
+      setClientSessions(sessions);
+      setPickerStep("session");
+    } catch {
+      toast({ title: "Błąd połączenia", variant: "destructive" });
+      setPickerStep("client");
+    } finally {
+      setPickerLoading(false);
+    }
+  };
+
+  // ── Tool data ────────────────────────────────────────────────────────────
   useEffect(() => {
     fetch(`/api/hub-wiedzy/${id}`)
       .then((r) => r.json())
@@ -207,10 +240,10 @@ export default function HubWiedzyDetailPage() {
           Hub wiedzy
         </button>
 
-        {/* Premium gradient hero */}
+        {/* Gradient hero */}
         <div className="relative overflow-hidden rounded-2xl header-gradient-purple mb-8">
           <div className="absolute -top-6 -right-6 w-44 h-44 rounded-full bg-white/20 blur-2xl pointer-events-none" />
-          <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-purple-300/20 blur-2xl pointer-events-none" />
           <div className="relative z-10 px-7 py-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4 min-w-0">
@@ -244,31 +277,33 @@ export default function HubWiedzyDetailPage() {
                   )}
                 </div>
               </div>
+
+              {/* Action buttons */}
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleAddToPlan}
-                  disabled={addingToPlan}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors disabled:opacity-60"
+                  disabled={addingToPlan || pickerLoading}
+                  className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold bg-[#5A3FE0] text-white hover:bg-[#6e55e8] rounded-xl shadow-sm transition-colors disabled:opacity-60 shrink-0"
                 >
-                  {addingToPlan ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />}
+                  {(addingToPlan || pickerLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
                   Dodaj do Planu Sesji
                 </button>
                 <button
                   onClick={toggleFavorite}
                   className={cn(
-                    "flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-xl border transition-colors",
+                    "flex items-center gap-1.5 h-9 px-3 text-xs font-medium rounded-xl border transition-colors shrink-0",
                     isFavorite
-                      ? "bg-rose-500/20 border-rose-300/30 text-rose-200 hover:bg-rose-500/30"
+                      ? "bg-rose-500 border-rose-400 text-white hover:bg-rose-600"
                       : "bg-white/15 border-white/20 text-white/80 hover:bg-white/25 hover:text-white"
                   )}
                 >
-                  <Heart className={cn("w-3.5 h-3.5", isFavorite && "fill-rose-300 text-rose-300")} />
-                  {isFavorite ? "Ulubione" : "Ulubione"}
+                  <Heart className={cn("w-3.5 h-3.5 shrink-0", isFavorite ? "fill-white text-white" : "")} />
+                  Ulubione
                 </button>
                 {isOwn && (
                   <button
                     onClick={openEdit}
-                    className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors"
+                    className="flex items-center gap-1.5 h-9 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors shrink-0"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edytuj
@@ -286,10 +321,10 @@ export default function HubWiedzyDetailPage() {
             <div className="border rounded-xl bg-white dark:bg-card px-5 py-4 prose-coach overflow-auto">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{tool.description}</ReactMarkdown>
             </div>
-            <div className="border rounded-xl bg-white dark:bg-card px-5 py-4 prose-coach overflow-auto">
-              <h3 className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-3">
+            <div className="border rounded-xl bg-white dark:bg-card px-5 py-4 prose-coach prose-hub overflow-auto">
+              <p className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-3">
                 Jak stosować technikę w coachingu
-              </h3>
+              </p>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{tool.structure}</ReactMarkdown>
             </div>
           </div>
@@ -339,29 +374,65 @@ export default function HubWiedzyDetailPage() {
         </div>
       </div>
 
-      {/* Session picker dialog */}
-      <Dialog open={sessionPickerOpen} onOpenChange={setSessionPickerOpen}>
+      {/* 2-step plan picker dialog */}
+      <Dialog open={pickerStep !== null} onOpenChange={(open) => { if (!open) closePicker(); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Wybierz sesję</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            {plannedSessions.map((s) => {
-              const date = new Date(s.scheduledAt).toLocaleDateString("pl-PL", {
-                day: "numeric", month: "long", year: "numeric",
-              });
-              return (
+            <div className="flex items-center gap-2">
+              {pickerStep === "session" && (
                 <button
-                  key={s.id}
-                  onClick={() => doAddToPlan(s.id)}
+                  onClick={() => { setPickerStep("client"); setSelectedClient(null); setClientSessions([]); }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
+              <DialogTitle>
+                {pickerStep === "client" ? "Wybierz klienta" : `Wybierz sesję — ${selectedClient?.name}`}
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          {pickerLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : pickerStep === "client" ? (
+            <div className="space-y-2 py-2 max-h-80 overflow-y-auto">
+              {clients.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => handleClientSelected(c)}
                   className="w-full text-left px-4 py-3 rounded-xl border hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
                 >
-                  <p className="text-sm font-medium">{s.clientName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{date}</p>
+                  <p className="text-sm font-medium">{c.name}</p>
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2 py-2 max-h-80 overflow-y-auto">
+              {clientSessions.map((s) => {
+                const date = new Date(s.scheduledAt).toLocaleDateString("pl-PL", {
+                  day: "numeric", month: "long", year: "numeric",
+                });
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => doAddToPlan(s.id)}
+                    className="w-full text-left px-4 py-3 rounded-xl border hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+                  >
+                    <p className="text-sm font-medium">Sesja {s.sessionNumber}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-muted-foreground">{date}</p>
+                      <span className="text-[10px] font-medium bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
+                        Zaplanowana
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

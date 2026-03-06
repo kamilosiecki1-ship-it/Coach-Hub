@@ -166,3 +166,19 @@
 .prose-coach code {
   @apply bg-muted px-1 py-0.5 rounded text-xs font-mono;
 }
+
+/* ─── Hub wiedzy — violet h2 override (keep session/mentor h2 blue) ─────── */
+.prose-hub.prose-coach h2 {
+  @apply text-violet-700 border-violet-500;
+}
+.dark .prose-hub.prose-coach h2 {
+  @apply text-violet-400 border-violet-400;
+}
+
+/* ─── TipTap editor links (session plan, notes) ─────────────────────────── */
+.tiptap-editor-content a {
+  @apply text-violet-600 underline underline-offset-2 hover:text-violet-800 transition-colors;
+}
+.dark .tiptap-editor-content a {
+  @apply text-violet-400 hover:text-violet-200;
+}

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!targetSession) return NextResponse.json({ error: "Nie znaleziono sesji" }, { status: 404 });
 
   const toolLink = `/hub-wiedzy/${tool.id}`;
-  const header = `> **Hub wiedzy — ${tool.name}**\n> [Przejdź do techniki](${toolLink})`;
+  const header = `> **Hub wiedzy — ${tool.name}** · [Przejdź do techniki →](${toolLink})`;
 
   const separator = targetSession.planMd?.trim() ? "\n\n---\n\n" : "";
   await prisma.session.update({
