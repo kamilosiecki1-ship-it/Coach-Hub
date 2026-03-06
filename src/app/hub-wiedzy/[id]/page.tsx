@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Loader2, Heart, NotebookPen, Check, BookOpen } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2, Heart, NotebookPen, Check, BookOpen, ClipboardList } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/components/ui/use-toast";
@@ -46,6 +46,59 @@ export default function HubWiedzyDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ name: "", category: "", tags: "", description: "", structure: "", example: "" });
   const [saving, setSaving] = useState(false);
+
+  interface PlannedSession { id: string; scheduledAt: string; clientName: string; }
+  const [plannedSessions, setPlannedSessions] = useState<PlannedSession[]>([]);
+  const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
+  const [addingToPlan, setAddingToPlan] = useState(false);
+
+  const doAddToPlan = async (sessionId: string) => {
+    setAddingToPlan(true);
+    setSessionPickerOpen(false);
+    try {
+      const res = await fetch(`/api/hub-wiedzy/${id}/add-to-plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const date = data.sessionScheduledAt
+          ? new Date(data.sessionScheduledAt).toLocaleDateString("pl-PL", { day: "numeric", month: "long" })
+          : "";
+        toast({ title: "Dodano do Planu Sesji", description: date ? `Sesja: ${date}` : undefined });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Błąd", description: err.error ?? "Spróbuj ponownie.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Błąd połączenia", variant: "destructive" });
+    } finally {
+      setAddingToPlan(false);
+    }
+  };
+
+  const handleAddToPlan = async () => {
+    setAddingToPlan(true);
+    try {
+      const res = await fetch("/api/sesje?status=planned");
+      const sessions: PlannedSession[] = res.ok ? await res.json() : [];
+      if (sessions.length === 0) {
+        setAddingToPlan(false);
+        toast({ title: "Brak zaplanowanych sesji", description: "Zaplanuj sesję, aby dodać do planu.", variant: "destructive" });
+      } else if (sessions.length === 1) {
+        setAddingToPlan(false);
+        await doAddToPlan(sessions[0].id);
+      } else {
+        setAddingToPlan(false);
+        setPlannedSessions(sessions);
+        setSessionPickerOpen(true);
+      }
+    } catch {
+      setAddingToPlan(false);
+      toast({ title: "Błąd połączenia", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     fetch(`/api/hub-wiedzy/${id}`)
@@ -155,7 +208,7 @@ export default function HubWiedzyDetailPage() {
         </button>
 
         {/* Premium gradient hero */}
-        <div className="relative overflow-hidden rounded-2xl header-gradient mb-8">
+        <div className="relative overflow-hidden rounded-2xl header-gradient-purple mb-8">
           <div className="absolute -top-6 -right-6 w-44 h-44 rounded-full bg-white/20 blur-2xl pointer-events-none" />
           <div className="absolute bottom-0 -left-4 w-36 h-36 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" />
           <div className="relative z-10 px-7 py-6">
@@ -193,6 +246,14 @@ export default function HubWiedzyDetailPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
+                  onClick={handleAddToPlan}
+                  disabled={addingToPlan}
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-white/15 border border-white/20 text-white/80 hover:bg-white/25 hover:text-white rounded-xl transition-colors disabled:opacity-60"
+                >
+                  {addingToPlan ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />}
+                  Dodaj do Planu Sesji
+                </button>
+                <button
                   onClick={toggleFavorite}
                   className={cn(
                     "flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-xl border transition-colors",
@@ -226,6 +287,9 @@ export default function HubWiedzyDetailPage() {
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{tool.description}</ReactMarkdown>
             </div>
             <div className="border rounded-xl bg-white dark:bg-card px-5 py-4 prose-coach overflow-auto">
+              <h3 className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-3">
+                Jak stosować technikę w coachingu
+              </h3>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{tool.structure}</ReactMarkdown>
             </div>
           </div>
@@ -259,7 +323,7 @@ export default function HubWiedzyDetailPage() {
             <span className="text-xs text-muted-foreground">
               Notatka jest powiązana z Twoim kontem i nie jest widoczna dla innych.
             </span>
-            <Button size="sm" onClick={saveNote} disabled={noteSaving}>
+            <Button size="sm" onClick={saveNote} disabled={noteSaving} className="bg-violet-600 hover:bg-violet-700 text-white">
               {noteSaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : noteSaved ? (
@@ -274,6 +338,32 @@ export default function HubWiedzyDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Session picker dialog */}
+      <Dialog open={sessionPickerOpen} onOpenChange={setSessionPickerOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Wybierz sesję</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {plannedSessions.map((s) => {
+              const date = new Date(s.scheduledAt).toLocaleDateString("pl-PL", {
+                day: "numeric", month: "long", year: "numeric",
+              });
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => doAddToPlan(s.id)}
+                  className="w-full text-left px-4 py-3 rounded-xl border hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+                >
+                  <p className="text-sm font-medium">{s.clientName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{date}</p>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

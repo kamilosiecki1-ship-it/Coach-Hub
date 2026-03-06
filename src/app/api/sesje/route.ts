@@ -3,6 +3,43 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// GET /api/sesje?status=planned — returns all future planned sessions with client info
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Nieautoryzowany" }, { status: 401 });
+
+  const userId = (session.user as { id: string }).id;
+  const { searchParams } = new URL(req.url);
+  const status = searchParams.get("status");
+
+  if (status !== "planned") {
+    return NextResponse.json({ error: "Nieobsługiwany parametr" }, { status: 400 });
+  }
+
+  const sessions = await prisma.session.findMany({
+    where: {
+      status: "Zaplanowana",
+      scheduledAt: { gte: new Date() },
+      client: { userId },
+    },
+    select: {
+      id: true,
+      scheduledAt: true,
+      client: { select: { id: true, name: true } },
+    },
+    orderBy: { scheduledAt: "asc" },
+  });
+
+  return NextResponse.json(
+    sessions.map((s) => ({
+      id: s.id,
+      scheduledAt: s.scheduledAt.toISOString(),
+      clientId: s.client.id,
+      clientName: s.client.name,
+    }))
+  );
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Nieautoryzowany" }, { status: 401 });
