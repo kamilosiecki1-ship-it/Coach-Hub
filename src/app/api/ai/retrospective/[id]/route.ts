@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 // PATCH /api/ai/retrospective/[id]
 // Body: { reportJson: object } — update structured JSON (v1); or { reportMd: string } — update legacy markdown
@@ -29,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       })
     : await prisma.retrospective.update({
         where: { id: params.id },
-        data: { reportMd: reportMd!, reportJson: { set: null } },
+        data: { reportMd: reportMd!, reportJson: Prisma.DbNull },
       });
 
   return NextResponse.json(updated);

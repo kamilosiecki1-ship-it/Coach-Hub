@@ -245,27 +245,32 @@ export default function KlientPage() {
   const handleGenerateRetro = async () => {
     setRetroLoading(true);
     setRetroInsufficientData(null);
-    const res = await fetch("/api/ai/retrospective", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId }),
-    });
-    setRetroLoading(false);
-    if (res.ok) {
-      toast({ title: "Retrospektywa wygenerowana" });
-      fetchClient();
-      setRetroExpanded(true);
-      setExpandedRetro(null);
-    } else {
-      const body = await res.json().catch(() => ({})) as { error?: { code?: string; missing?: string[] } | string };
-      if (res.status === 503) { setAiEnabled(false); return; }
-      if (res.status === 400 && typeof body.error === "object" && body.error?.code === "INSUFFICIENT_DATA") {
-        setRetroInsufficientData(body.error.missing ?? []);
+    try {
+      const res = await fetch("/api/ai/retrospective", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId }),
+      });
+      if (res.ok) {
+        toast({ title: "Retrospektywa wygenerowana" });
+        fetchClient();
         setRetroExpanded(true);
-        return;
+        setExpandedRetro(null);
+      } else {
+        const body = await res.json().catch(() => ({})) as { error?: { code?: string; missing?: string[] } | string };
+        if (res.status === 503) { setAiEnabled(false); return; }
+        if (res.status === 400 && typeof body.error === "object" && body.error?.code === "INSUFFICIENT_DATA") {
+          setRetroInsufficientData(body.error.missing ?? []);
+          setRetroExpanded(true);
+          return;
+        }
+        const msg = typeof body.error === "string" ? body.error : (body.error as { message?: string })?.message ?? "Nieznany błąd";
+        toast({ title: "Błąd generowania", description: msg, variant: "destructive" });
       }
-      const msg = typeof body.error === "string" ? body.error : (body.error as { message?: string })?.message ?? "Nieznany błąd";
-      toast({ title: "Błąd generowania", description: msg, variant: "destructive" });
+    } catch {
+      toast({ title: "Błąd generowania", description: "Nie można połączyć się z serwerem.", variant: "destructive" });
+    } finally {
+      setRetroLoading(false);
     }
   };
 

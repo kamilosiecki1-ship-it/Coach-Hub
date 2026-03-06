@@ -18,7 +18,7 @@ import remarkGfm from "remark-gfm";
 import {
   Loader2, Send, ArrowLeft, Plus, MessageSquare, Calendar, Gem,
   Target, Sparkles, ClipboardList, BookOpen, CheckCircle2, AlertCircle,
-  ChevronRight, ArrowDown,
+  ChevronRight, ArrowDown, FileText,
 } from "lucide-react";
 import { MentorMark } from "@/components/ui/mentor-mark";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { MarkdownEditor } from "@/components/sessions/MarkdownEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,14 @@ export interface MentorAIPanelProps {
   fromSessionStatus?: string;
   /** Auto-open a specific conversation (deep-link from Notatnik) */
   initialConversationId?: string;
+  /** Current planMd of the session — shown as editable panel alongside chat (planned sessions) */
+  fromSessionPlanMd?: string;
+  /** Key to force MarkdownEditor remount after plan content changes externally */
+  fromSessionPlanEditorKey?: number;
+  /** Called with the new planMd after "Dodaj do Planu Sesji" succeeds */
+  onPlanUpdated?: (newPlanMd: string) => void;
+  /** Called after user saves edits in the Plan Sesji panel (no key increment) */
+  onPlanSaved?: (md: string) => void;
 }
 
 type PanelView = "list" | "context" | "chat";
@@ -131,6 +140,10 @@ export function MentorAIPanel({
   fromSessionId,
   fromSessionStatus,
   initialConversationId,
+  fromSessionPlanMd,
+  fromSessionPlanEditorKey,
+  onPlanUpdated,
+  onPlanSaved,
 }: MentorAIPanelProps) {
   const { toast } = useToast();
 
@@ -405,6 +418,7 @@ export function MentorAIPanel({
           ? new Date(data.sessionScheduledAt).toLocaleDateString("pl-PL", { day: "numeric", month: "long" })
           : "";
         toast({ title: "Dodano do Planu Sesji", description: date ? `Sesja: ${date}` : undefined });
+        if (data.newPlanMd !== undefined) onPlanUpdated?.(data.newPlanMd);
       } else {
         const err = await res.json();
         toast({
@@ -418,7 +432,7 @@ export function MentorAIPanel({
     } finally {
       setAddingToPlan(null);
     }
-  }, [toast]);
+  }, [toast, onPlanUpdated]);
 
   const handleAddToPlan = useCallback((messageId: string) => {
     if (plannedSessions.length === 0) {
@@ -730,7 +744,7 @@ export function MentorAIPanel({
     { label: "Pomóż zaplanować sesję", icon: <Sparkles className="w-3.5 h-3.5" />, color: "text-[#8A66BC] dark:text-white/90", hover: "hover:bg-[#8A66BC]/15 hover:border-[#8A66BC]/40 dark:hover:bg-white/15 dark:hover:border-white/25" },
   ];
 
-  return (
+  const chatPanel = (
     <div className="flex flex-col h-full relative">
       {/* Chat header */}
       <div className="relative overflow-hidden shrink-0 header-gradient">
@@ -1043,4 +1057,38 @@ export function MentorAIPanel({
       </Dialog>
     </div>
   );
+
+  // Plan Sesji side panel — shown alongside chat for planned sessions
+  if (fromSessionPlanMd !== undefined) {
+    return (
+      <div className="flex h-full p-3 gap-3 bg-slate-100/60 dark:bg-background overflow-hidden">
+        {/* Left: Plan sesji — editable */}
+        <div className="flex-[43] min-w-0 flex flex-col bg-white dark:bg-card rounded-2xl border shadow-sm overflow-hidden">
+          <div className="header-gradient px-4 py-3 shrink-0 flex items-center gap-2 rounded-t-2xl">
+            <FileText className="w-4 h-4 text-white/80 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white leading-none">Plan sesji</p>
+              <p className="text-xs text-white/70 mt-0.5">przygotowanie i struktura</p>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <MarkdownEditor
+              key={fromSessionPlanEditorKey}
+              sessionId={fromSessionId!}
+              initialValue={fromSessionPlanMd}
+              saveField="planMd"
+              placeholder="Przygotuj strukturę sesji, pytania, techniki, flow…"
+              onSave={(md) => onPlanSaved?.(md)}
+            />
+          </div>
+        </div>
+        {/* Right: Chat */}
+        <div className="flex-[57] min-w-0 rounded-2xl border shadow-sm overflow-hidden">
+          {chatPanel}
+        </div>
+      </div>
+    );
+  }
+
+  return chatPanel;
 }

@@ -79,6 +79,10 @@ export default function SesjaPage() {
   const [clientSessions, setClientSessions] = useState<ClientSession[]>([]);
   const [drawerDataLoaded, setDrawerDataLoaded] = useState(false);
 
+  // Track current planMd for live refresh after Mentor AI additions
+  const [currentPlanMd, setCurrentPlanMd] = useState("");
+  const [planEditorKey, setPlanEditorKey] = useState(0);
+
   // Auto-collapse sidebar for more horizontal space (same pattern as client view)
   const { setCollapsed } = useSidebar();
   useEffect(() => {
@@ -121,6 +125,7 @@ export default function SesjaPage() {
     if (!res.ok) { router.push(`/klienci/${clientId}`); return; }
     const data: Session = await res.json();
     setSession(data);
+    setCurrentPlanMd(data.planMd ?? "");
     setScheduledAt(new Date(data.scheduledAt).toISOString().slice(0, 16));
     setDurationMin(data.durationMin?.toString() ?? "");
     setLoading(false);
@@ -330,10 +335,12 @@ export default function SesjaPage() {
               </div>
               <div className="flex-1 overflow-hidden">
                 <MarkdownEditor
+                  key={planEditorKey}
                   sessionId={sessionId}
-                  initialValue={session.planMd}
+                  initialValue={currentPlanMd}
                   saveField="planMd"
                   placeholder="Przygotuj strukturę sesji, pytania, techniki, flow…"
+                  onSave={(md) => setCurrentPlanMd(md)}
                 />
               </div>
             </div>
@@ -409,10 +416,12 @@ export default function SesjaPage() {
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <MarkdownEditor
+                    key={planEditorKey}
                     sessionId={sessionId}
-                    initialValue={session.planMd}
+                    initialValue={currentPlanMd}
                     saveField="planMd"
                     placeholder="Plan sesji..."
+                    onSave={(md) => setCurrentPlanMd(md)}
                   />
                 </div>
               </div>
@@ -479,7 +488,14 @@ export default function SesjaPage() {
 
       {/* Mentor AI drawer */}
       <Sheet open={mentorOpen} onOpenChange={setMentorOpen}>
-        <SheetContent side="right" className="w-[700px] p-0 flex flex-col overflow-hidden">
+        <SheetContent
+          side="right"
+          hideClose
+          className={cn(
+            "p-0 flex flex-col overflow-hidden",
+            isPlanned ? "w-[1100px]" : "w-[700px]"
+          )}
+        >
           <MentorAIPanel
             clientId={clientId}
             clientName={session.client.name}
@@ -488,6 +504,13 @@ export default function SesjaPage() {
             aiEnabled={aiEnabled}
             fromSessionId={sessionId}
             fromSessionStatus={session.status}
+            fromSessionPlanMd={isPlanned ? currentPlanMd : undefined}
+            fromSessionPlanEditorKey={planEditorKey}
+            onPlanUpdated={(newPlanMd) => {
+              setCurrentPlanMd(newPlanMd);
+              setPlanEditorKey((k) => k + 1);
+            }}
+            onPlanSaved={(md) => setCurrentPlanMd(md)}
           />
         </SheetContent>
       </Sheet>

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Brain, StickyNote } from "lucide-react";
+import { Loader2, Brain, StickyNote, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -90,6 +90,7 @@ export function SessionOffboardingModal({
   const initializedRef = useRef<string | null>(null);
 
   const hasScratchpad = sessionEnding || !!(defaults.sessionScratchpadMd?.trim());
+  const hasPlan = !!(defaults.sessionPlanMd?.trim());
 
   useEffect(() => {
     if (!open) {
@@ -385,14 +386,31 @@ export function SessionOffboardingModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {hasScratchpad ? (
-        /* ── Wide 2-column layout with scratchpad reference ── */
-        <DialogContent className="max-w-[1050px] p-0 gap-0">
+        /* ── Wide layout with scratchpad (and optionally plan) reference ── */
+        <DialogContent className={hasPlan ? "max-w-[1400px] p-0 gap-0" : "max-w-[1050px] p-0 gap-0"}>
           <div className="flex flex-col" style={{ maxHeight: "90vh" }}>
             <div className="flex items-center px-6 py-4 border-b shrink-0">
               <DialogTitle>Podsumowanie po sesji</DialogTitle>
             </div>
             <div className="flex flex-1 overflow-hidden min-h-0">
-              {/* Left: Scratchpad reference */}
+              {/* Optional leftmost: Plan sesji reference */}
+              {hasPlan && (
+                <div className="w-[380px] shrink-0 border-r flex flex-col bg-white dark:bg-card overflow-hidden">
+                  <div className="header-gradient px-4 py-3 shrink-0 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-white/80 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-white leading-none">Plan sesji</p>
+                      <p className="text-xs text-white/70 mt-0.5">przygotowanie — tylko odczyt</p>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <div className="prose-coach text-sm">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{defaults.sessionPlanMd!}</ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Scratchpad reference */}
               <div className="w-[380px] shrink-0 border-r flex flex-col bg-white dark:bg-card overflow-hidden">
                 <div className="header-gradient-scratchpad px-4 py-3 shrink-0 flex items-center gap-2">
                   <StickyNote className="w-4 h-4 text-white/80 shrink-0" />

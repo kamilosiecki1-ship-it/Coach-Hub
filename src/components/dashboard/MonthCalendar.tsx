@@ -149,7 +149,7 @@ export function MonthCalendar({
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 inline-block" />
-            Odbyte
+            Zakończone
           </span>
         </div>
       </div>

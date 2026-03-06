@@ -86,15 +86,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const header = `> **Mentor AI — sugestia z rozmowy**\n> *${dateStr}* · [Przejdź do rozmowy](${convLink})`;
 
   const separator = targetSession.planMd?.trim() ? "\n\n---\n\n" : "";
+  const newPlanMd = (targetSession.planMd ?? "") + separator + header + "\n\n" + message.content;
   await prisma.session.update({
     where: { id: targetSession.id },
-    data: {
-      planMd: (targetSession.planMd ?? "") + separator + header + "\n\n" + message.content,
-    },
+    data: { planMd: newPlanMd },
   });
 
   return NextResponse.json({
     sessionId: targetSession.id,
     sessionScheduledAt: targetSession.scheduledAt,
+    newPlanMd,
   });
 }

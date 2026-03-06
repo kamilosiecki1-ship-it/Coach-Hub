@@ -48,7 +48,9 @@ function buildRequest(
         ]
       : otherMessages;
 
-    return { model: MODEL, messages: merged, max_completion_tokens: maxTokens };
+    // Reasoning models spend tokens on internal thinking before producing output.
+    // Ensure there's always enough budget for both reasoning and the actual response.
+    return { model: MODEL, messages: merged, max_completion_tokens: Math.max(maxTokens, 10000) };
   }
 
   return {
@@ -576,7 +578,7 @@ Zasady:
       messages: [
         { role: "user", content: `[Instrukcja systemowa]\n${RETRO_SYSTEM_PROMPT}\n\n[Zadanie]\n${userPrompt}` },
       ],
-      max_completion_tokens: 3000,
+      max_completion_tokens: 10000, // reasoning models need extra tokens for internal thinking
     });
   } else {
     response = await openai.chat.completions.create({
@@ -593,7 +595,15 @@ Zasady:
 
   logUsage(response, userId, "retrospective_v2");
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  // `??` doesn't catch empty strings — use `||` to also handle "" and whitespace-only
+  let raw = (response.choices[0]?.message?.content || "").trim();
+  // Strip markdown code fences that reasoning models sometimes add despite instructions
+  if (raw.startsWith("```")) {
+    raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  }
+  if (!raw) {
+    throw new Error("Model zwrócił pustą odpowiedź — prawdopodobnie wyczerpał limit tokenów. Spróbuj ponownie.");
+  }
   let report: RetrospectiveReportV1;
   try {
     report = JSON.parse(raw) as RetrospectiveReportV1;

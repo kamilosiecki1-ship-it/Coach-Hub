@@ -131,19 +131,26 @@ export async function POST(req: NextRequest) {
       offboarding: s.offboarding,
     }));
 
-  const { report, truncated } = await generateRetrospectiveJSON(
-    {
-      clientName: clientRecord.name,
-      clientRole: clientRecord.role,
-      clientCompany: clientRecord.company,
-      clientStage: clientRecord.stage,
-      generalNote: clientRecord.generalNote,
-      totalSessionCount: clientRecord.sessions.length,
-      completedSessionCount: completedSessions.length,
-      sessions: retroSessions,
-    },
-    userId
-  );
+  let report: Awaited<ReturnType<typeof generateRetrospectiveJSON>>["report"];
+  let truncated: boolean;
+  try {
+    ({ report, truncated } = await generateRetrospectiveJSON(
+      {
+        clientName: clientRecord.name,
+        clientRole: clientRecord.role,
+        clientCompany: clientRecord.company,
+        clientStage: clientRecord.stage,
+        generalNote: clientRecord.generalNote,
+        totalSessionCount: clientRecord.sessions.length,
+        completedSessionCount: completedSessions.length,
+        sessions: retroSessions,
+      },
+      userId
+    ));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Nieznany błąd generowania.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   const saved = await prisma.retrospective.create({
     data: {
