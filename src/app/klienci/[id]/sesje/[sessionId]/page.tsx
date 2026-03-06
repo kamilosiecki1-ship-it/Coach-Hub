@@ -487,7 +487,15 @@ export default function SesjaPage() {
       </Dialog>
 
       {/* Mentor AI drawer */}
-      <Sheet open={mentorOpen} onOpenChange={setMentorOpen}>
+      <Sheet
+        open={mentorOpen}
+        onOpenChange={(open) => {
+          setMentorOpen(open);
+          // Remount the session-view plan editor when sheet closes so it reflects
+          // any edits made inside the MentorAI dual-panel
+          if (!open) setPlanEditorKey((k) => k + 1);
+        }}
+      >
         <SheetContent
           side="right"
           hideClose
