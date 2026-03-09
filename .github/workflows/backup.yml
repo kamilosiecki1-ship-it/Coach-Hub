@@ -17,9 +17,15 @@ jobs:
 
       - name: Dump database
         env:
-          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE_DIRECT_URL: ${{ secrets.DATABASE_DIRECT_URL }}
         run: |
-          pg_dump "${{ secrets.DATABASE_DIRECT_URL }}" \
+          if [ -z "$DATABASE_DIRECT_URL" ]; then
+            echo "ERROR: DATABASE_DIRECT_URL secret is not set."
+            echo "Go to GitHub repo → Settings → Secrets → Actions and add DATABASE_DIRECT_URL"
+            echo "Value: your Supabase direct URI (port 5432, not pooler)"
+            exit 1
+          fi
+          pg_dump "$DATABASE_DIRECT_URL" \
             --format=custom \
             --no-acl \
             --no-owner \
