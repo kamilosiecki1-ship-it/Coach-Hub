@@ -21,11 +21,18 @@ jobs:
         run: |
           if [ -z "$DATABASE_DIRECT_URL" ]; then
             echo "ERROR: DATABASE_DIRECT_URL secret is not set."
-            echo "Go to GitHub repo → Settings → Secrets → Actions and add DATABASE_DIRECT_URL"
-            echo "Value: your Supabase direct URI (port 5432, not pooler)"
             exit 1
           fi
-          pg_dump "$DATABASE_DIRECT_URL" \
+          # Resolve hostname to IPv4 — GitHub Actions can't reach Supabase over IPv6
+          DUMP_URL=$(python3 - <<'PYEOF'
+import os, urllib.parse, socket
+u = urllib.parse.urlparse(os.environ['DATABASE_DIRECT_URL'])
+ipv4 = socket.getaddrinfo(u.hostname, None, socket.AF_INET)[0][4][0]
+netloc = u.netloc.replace(u.hostname, ipv4)
+print(u._replace(netloc=netloc).geturl())
+PYEOF
+)
+          pg_dump "$DUMP_URL" \
             --format=custom \
             --no-acl \
             --no-owner \
