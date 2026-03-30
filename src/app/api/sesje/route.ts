@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const createSessionSchema = z.object({
+  clientId: z.string().uuid(),
+  scheduledAt: z.string().datetime(),
+  durationMin: z.number().int().min(1).max(480).optional(),
+  notes: z.string().max(5000).optional(),
+});
 
 // GET /api/sesje?status=planned — returns all future planned sessions with client info
 export async function GET(req: NextRequest) {
@@ -46,11 +54,11 @@ export async function POST(req: NextRequest) {
 
   const userId = (session.user as { id: string }).id;
   const body = await req.json();
-  const { clientId, scheduledAt, durationMin } = body;
-
-  if (!clientId || !scheduledAt) {
-    return NextResponse.json({ error: "Brak wymaganych pól" }, { status: 400 });
+  const parsed = createSessionSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Nieprawidłowe dane", details: parsed.error.flatten() }, { status: 400 });
   }
+  const { clientId, scheduledAt, durationMin } = parsed.data;
 
   // Verify client belongs to user
   const client = await prisma.client.findFirst({ where: { id: clientId, userId } });
@@ -60,7 +68,7 @@ export async function POST(req: NextRequest) {
     data: {
       clientId,
       scheduledAt: new Date(scheduledAt),
-      durationMin: durationMin ? parseInt(durationMin) : null,
+      durationMin: durationMin ?? null,
       status: "Zaplanowana",
       notesMd: "",
       planMd: "",

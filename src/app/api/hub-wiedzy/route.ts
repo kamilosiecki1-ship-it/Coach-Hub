@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const createKnowledgeToolSchema = z.object({
+  name: z.string().min(1).max(300),
+  category: z.string().min(1).max(100),
+  tags: z.string().max(500).optional(),
+  description: z.string().max(50000),
+  structure: z.string().max(50000),
+  example: z.string().max(50000),
+});
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -49,14 +59,12 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = (session.user as { id: string }).id;
-  const { name, category, tags, description, structure, example } = await req.json();
-
-  if (!name || !category || !description || !structure || !example) {
-    return NextResponse.json(
-      { error: "Brak wymaganych pól: name, category, description, structure, example" },
-      { status: 400 }
-    );
+  const body = await req.json();
+  const parsed = createKnowledgeToolSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Nieprawidłowe dane", details: parsed.error.flatten() }, { status: 400 });
   }
+  const { name, category, tags, description, structure, example } = parsed.data;
 
   const tool = await prisma.knowledgeTool.create({
     data: { userId, name, category, tags: tags ?? "", description, structure, example },

@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const patchNoteSchema = z.object({
+  title: z.string().max(500).optional(),
+  content: z.any().optional(),
+  plainText: z.string().max(50000).optional(),
+  isPinned: z.boolean().optional(),
+});
 
 type Params = { params: { id: string } };
 
@@ -29,7 +37,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: "Nie znaleziono notatki" }, { status: 404 });
 
   const body = await req.json();
-  const { title, content, plainText, isPinned } = body;
+  const parsed = patchNoteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Nieprawidłowe dane", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const { title, content, plainText, isPinned } = parsed.data;
 
   const note = await prisma.note.update({
     where: { id: params.id },

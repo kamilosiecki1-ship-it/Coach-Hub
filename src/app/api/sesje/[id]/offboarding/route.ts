@@ -3,6 +3,27 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateOffboardingNote } from "@/lib/offboardingNote";
+import { z } from "zod";
+
+const offboardingSchema = z.object({
+  date: z.string().datetime().nullable().optional(),
+  sessionNumber: z.number().int().min(1).max(10000).nullable().optional(),
+  hours: z.number().min(0).max(24).nullable().optional(),
+  clientLabel: z.string().max(500).nullable().optional(),
+  eventTopic: z.string().max(1000).nullable().optional(),
+  learningExperience: z.string().max(50000).nullable().optional(),
+  sessionGoals: z.string().max(50000).nullable().optional(),
+  homework: z.string().max(50000).nullable().optional(),
+  techniques: z.string().max(50000).nullable().optional(),
+  keyInsightsClient: z.string().max(50000).nullable().optional(),
+  gains: z.string().max(50000).nullable().optional(),
+  homeworkDescription: z.string().max(50000).nullable().optional(),
+  feedback: z.string().max(50000).nullable().optional(),
+  coachReflection: z.string().max(50000).nullable().optional(),
+  focusAreas: z.string().max(50000).nullable().optional(),
+  additionalNotes: z.string().max(50000).nullable().optional(),
+  transcript: z.string().max(500000).nullable().optional(),
+});
 
 async function getSessionForUser(id: string, userId: string) {
   return prisma.session.findFirst({
@@ -36,6 +57,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!s) return NextResponse.json({ error: "Nie znaleziono sesji" }, { status: 404 });
 
   const body = await req.json();
+  const parsed = offboardingSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Nieprawidłowe dane", details: parsed.error.flatten() }, { status: 400 });
+  }
 
   const {
     date,
@@ -55,12 +80,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     focusAreas,
     additionalNotes,
     transcript,
-  } = body;
+  } = parsed.data;
 
   const data = {
     date: date ? new Date(date) : null,
-    sessionNumber: sessionNumber != null ? parseInt(String(sessionNumber)) : null,
-    hours: hours != null && hours !== "" ? parseFloat(String(hours)) : null,
+    sessionNumber: sessionNumber ?? null,
+    hours: hours ?? null,
     clientLabel: clientLabel ?? null,
     eventTopic: eventTopic ?? null,
     learningExperience: learningExperience ?? null,

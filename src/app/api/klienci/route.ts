@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const createClientSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email().optional(),
+  phone: z.string().max(20).optional(),
+  company: z.string().max(200).optional(),
+  role: z.string().max(200).optional(),
+  stage: z.enum(["Wstęp", "W trakcie", "Zakończony"]).optional(),
+  generalNote: z.string().max(5000).optional(),
+});
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -46,12 +57,11 @@ export async function POST(req: NextRequest) {
 
   const userId = (session.user as { id: string }).id;
   const body = await req.json();
-
-  const { name, company, role, stage, generalNote } = body;
-
-  if (!name?.trim()) {
-    return NextResponse.json({ error: "Imię i nazwisko jest wymagane" }, { status: 400 });
+  const parsed = createClientSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Nieprawidłowe dane", details: parsed.error.flatten() }, { status: 400 });
   }
+  const { name, company, role, stage, generalNote } = parsed.data;
 
   const client = await prisma.client.create({
     data: {

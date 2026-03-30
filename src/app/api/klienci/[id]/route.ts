@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const patchClientSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().max(20).optional(),
+  company: z.string().max(200).nullable().optional(),
+  role: z.string().max(200).nullable().optional(),
+  stage: z.enum(["Wstęp", "W trakcie", "Zakończony"]).optional(),
+  generalNote: z.string().max(5000).nullable().optional(),
+});
 
 async function getClientForUser(id: string, userId: string) {
   return prisma.client.findFirst({ where: { id, userId } });
@@ -33,7 +44,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!existing) return NextResponse.json({ error: "Nie znaleziono klienta" }, { status: 404 });
 
   const body = await req.json();
-  const { name, company, role, stage, generalNote } = body;
+  const parsed = patchClientSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Nieprawidłowe dane", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const { name, company, role, stage, generalNote } = parsed.data;
 
   const updated = await prisma.client.update({
     where: { id: params.id },
