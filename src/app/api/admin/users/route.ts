@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
   const query = searchParams.get("query") ?? "";
   const role = searchParams.get("role") ?? ""; // ADMIN | COACH | ""
   const status = searchParams.get("status") ?? ""; // blocked | active | ""
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-  const pageSize = parseInt(searchParams.get("pageSize") ?? "20");
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1") || 1);
+  const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20") || 20));
 
   const where = {
     AND: [
