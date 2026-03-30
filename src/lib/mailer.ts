@@ -88,6 +88,64 @@ export async function sendInviteEmail(to: string, registrationLink: string, role
   });
 }
 
+export async function sendAccountDeletionEmail(to: string): Promise<void> {
+  if (!isMailConfigured()) {
+    console.log("\n[DEV - brak RESEND_API_KEY] Potwierdzenie usunięcia konta dla:", to);
+    return;
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = process.env.EMAIL_FROM ?? "SessionLab <hello@sessionlab.app>";
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: "Session Lab — Twoje konto zostało usunięte",
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+
+        <!-- BANER -->
+        <div style="background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);padding:40px 32px 36px;text-align:center">
+          <div style="display:inline-block">
+            <span style="font-size:28px;font-weight:300;color:#bfdbfe;letter-spacing:4px;text-transform:uppercase">Session</span>
+            <span style="font-size:28px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase"> Lab</span>
+          </div>
+          <p style="margin:10px 0 0;color:#bfdbfe;font-size:13px;letter-spacing:1px">AI Superwizor Coachingu</p>
+        </div>
+
+        <!-- TREŚĆ -->
+        <div style="padding:36px 32px 28px;background:#fff">
+          <h2 style="margin:0 0 16px;font-size:22px;color:#1e3a8a;font-weight:700">Konto usunięte</h2>
+          <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6">
+            Potwierdzamy, że Twoje konto w Session Lab oraz wszystkie powiązane dane zostały
+            <strong>trwale usunięte</strong> zgodnie z art. 17 RODO (prawo do bycia zapomnianym).
+          </p>
+          <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6">
+            Usunięte dane obejmują m.in.: profil konta, dane klientów (coachees), notatki z sesji,
+            transkrypcje, konwersacje z Mentorem AI oraz logi użycia.
+          </p>
+          <div style="margin:24px 0 0;padding:20px 22px;background:#fff7ed;border-left:4px solid #f97316;border-radius:8px">
+            <p style="margin:0 0 6px;font-weight:700;color:#c2410c;font-size:14px">Dane zatrzymane ze względów prawnych</p>
+            <p style="margin:0;color:#334155;font-size:13px;line-height:1.7">
+              Zgodnie z przepisami prawa podatkowego (art. 86 Ordynacji podatkowej) dane rozliczeniowe
+              mogą być przechowywane przez 5 lat. Logi bezpieczeństwa — do 12 miesięcy.
+            </p>
+          </div>
+        </div>
+
+        <!-- STOPKA -->
+        <div style="padding:20px 32px;background:#f1f5f9;text-align:center">
+          <p style="margin:0;color:#94a3b8;font-size:12px">
+            Jeśli masz pytania, skontaktuj się z nami: hello@sessionlab.app
+          </p>
+          <p style="margin:6px 0 0;color:#cbd5e1;font-size:11px">Session Lab · sessionlab.app</p>
+        </div>
+
+      </div>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
   if (!isMailConfigured()) {
     console.log("\n[DEV - brak RESEND_API_KEY] Link do resetu hasła dla:", to);

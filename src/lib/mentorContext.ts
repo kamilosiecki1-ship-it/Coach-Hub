@@ -21,6 +21,7 @@
  */
 
 import MENTOR_SYSTEM_PROMPT from "./mentorPrompt";
+import { pseudonymizeClientContext, buildPseudonymMap, pseudonymizeSession } from "./pseudonymize";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,10 +184,18 @@ export function buildContextPack(
 ): string {
   if (contextType === "GENERAL") return "";
   if (contextType === "SESSION" && session) {
-    return buildSessionPack(session, sessionNumber ?? 1);
+    // Pseudonymize using client name/company if available, or session content only
+    const map = buildPseudonymMap({
+      name: client?.name,
+      company: client?.company,
+      role: client?.role,
+    });
+    const safeSession = pseudonymizeSession(session, map);
+    return buildSessionPack(safeSession, sessionNumber ?? 1);
   }
   if (contextType === "PROCESS" && client) {
-    return buildProcessPack(client);
+    const safeClient = pseudonymizeClientContext(client) as ClientData;
+    return buildProcessPack(safeClient);
   }
   return "";
 }

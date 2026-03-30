@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat/completions";
 import MENTOR_SYSTEM_PROMPT from "./mentorPrompt";
 import { prisma } from "./prisma";
+import { pseudonymizeClientContext } from "./pseudonymize";
 
 let openaiClient: OpenAI | null = null;
 
@@ -219,7 +220,8 @@ export async function generateProcessReport(
 ): Promise<{ report: string; truncated: boolean }> {
   const client = getClient();
 
-  const { contextBlock, sessionsIncluded, totalSessions } = buildClientContext(ctx);
+  const safeCtx = pseudonymizeClientContext(ctx);
+  const { contextBlock, sessionsIncluded, totalSessions } = buildClientContext(safeCtx);
   const truncated = sessionsIncluded < totalSessions;
 
   const totalHours = ctx.sessions
@@ -336,7 +338,8 @@ export async function generateRetrospective(
     sessions: ctx.sessions,
   };
 
-  const { contextBlock, sessionsIncluded, totalSessions } = buildClientContext(clientCtx);
+  const safeCtx = pseudonymizeClientContext(clientCtx);
+  const { contextBlock, sessionsIncluded, totalSessions } = buildClientContext(safeCtx);
   const truncated = sessionsIncluded < totalSessions;
 
   const userPrompt = `Wygeneruj szczegółową retrospektywę procesu coachingowego dla poniższego klienta.\n\n${contextBlock}\n\n---\n\nRetrospektywa powinna zawierać:\n\n### Podsumowanie procesu\n(ogólny przebieg, liczba sesji, zakres czasowy)\n\n### Kluczowe tematy i wątki\n(co pojawiało się w kolejnych sesjach, jak ewoluowały tematy)\n\n### Postęp i zmiany\n(co się zmieniło u klienta – możliwa tabela porównawcza)\n\n### Mocne strony klienta\n(zasoby, które ujawniły się w procesie)\n\n### Obszary do dalszej pracy\n(co wymaga kontynuacji lub pogłębienia)\n\n### Pytania do refleksji na dalszy proces\n(3–5 pytań dla coacha)\n\nUżyj formatu Markdown. Pisz po polsku. Zachowaj profesjonalny, refleksyjny ton.`;
@@ -500,7 +503,24 @@ export async function generateRetrospectiveJSON(
 ): Promise<{ report: RetrospectiveReportV1; truncated: boolean }> {
   const openai = getClient();
 
-  const { contextBlock, truncated, coverageNote } = buildRetroContextBlock(ctx);
+  // Pseudonymize before building the context block sent to OpenAI
+  const safeCtxForRetro = pseudonymizeClientContext({
+    name: ctx.clientName,
+    role: ctx.clientRole,
+    company: ctx.clientCompany,
+    generalNote: ctx.generalNote,
+    sessions: ctx.sessions,
+  });
+  const safeRetroCtx: RetroContextV2 = {
+    ...ctx,
+    clientName: safeCtxForRetro.name,
+    clientRole: safeCtxForRetro.role,
+    clientCompany: safeCtxForRetro.company,
+    generalNote: safeCtxForRetro.generalNote,
+    sessions: safeCtxForRetro.sessions as RetroSessionInput[],
+  };
+
+  const { contextBlock, truncated, coverageNote } = buildRetroContextBlock(safeRetroCtx);
 
   const userPrompt = `Przeanalizuj poniższy proces coachingowy i przygotuj retrospektywę superwizyjną dla coacha w formacie JSON.
 
@@ -511,7 +531,7 @@ ${contextBlock}
 Wygeneruj odpowiedź jako JSON zgodny DOKŁADNIE z tym schematem (bez żadnych modyfikacji struktury):
 
 {
-  "title": "Retrospektywa procesu — ${ctx.clientName}",
+  "title": "Retrospektywa procesu — ${safeRetroCtx.clientName}",
   "summary": {
     "oneLiner": "Jedno zdanie syntetyzujące cały proces.",
     "processSnapshot": ["Obserwacja 1", "Obserwacja 2", "Obserwacja 3"]
