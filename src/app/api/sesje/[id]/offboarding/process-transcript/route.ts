@@ -117,13 +117,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     try {
       extracted = JSON.parse(jsonStr);
     } catch {
-      return NextResponse.json({ error: "AI zwróciło nieprawidłowy JSON", detail: raw.slice(0, 200) }, { status: 500 });
+      return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
     }
 
     return NextResponse.json({ fields: extracted });
   } catch (err) {
     console.error("[process-transcript] AI error:", err);
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: "Błąd AI", detail: message }, { status: 500 });
+    return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
   }
 }

@@ -91,8 +91,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     );
   } catch (err) {
     console.error("[export PDF] renderToBuffer failed:", err);
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: "Błąd generowania PDF", detail: msg }, { status: 500 });
+    return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
   }
 
   const safeName = client.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();

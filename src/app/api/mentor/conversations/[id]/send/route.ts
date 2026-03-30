@@ -227,8 +227,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           }
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
+        console.error("[mentor/send] stream error:", err);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Wystąpił błąd serwera. Spróbuj ponownie." })}\n\n`));
         controller.close();
         return;
       }

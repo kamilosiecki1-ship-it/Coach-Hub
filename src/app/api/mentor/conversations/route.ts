@@ -126,7 +126,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(conversation, { status: 201 });
   } catch (err) {
     console.error("[mentor/conversations POST]", err);
-    const msg = err instanceof Error ? err.message : "Nieznany błąd";
-    return NextResponse.json({ error: `Nie udało się utworzyć rozmowy: ${msg}` }, { status: 500 });
+    return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
   }
 }

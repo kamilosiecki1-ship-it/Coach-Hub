@@ -131,7 +131,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(offboarding);
   } catch (err) {
     console.error("[offboarding POST] Prisma error:", err);
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: "Błąd zapisu danych", detail: message }, { status: 500 });
+    return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
   }
 }

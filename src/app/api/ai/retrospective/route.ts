@@ -148,8 +148,8 @@ export async function POST(req: NextRequest) {
       userId
     ));
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Nieznany błąd generowania.";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[ai/retrospective] error:", err);
+    return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
   }
 
   const saved = await prisma.retrospective.create({

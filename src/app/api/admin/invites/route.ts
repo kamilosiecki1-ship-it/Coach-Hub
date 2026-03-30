@@ -52,8 +52,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ invite, token, registrationLink, emailSent }, { status: 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[invites POST] ERROR:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[invites POST] ERROR:", err);
+    return NextResponse.json({ error: "Wystąpił błąd serwera. Spróbuj ponownie." }, { status: 500 });
   }
 }
