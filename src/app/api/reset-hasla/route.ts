@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateToken, hashToken } from "@/lib/tokens";
 import { sendPasswordResetEmail } from "@/lib/mailer";
+import { authRateLimit } from "@/lib/rateLimit";
 
 // POST /api/reset-hasla — request a password reset
 // Always returns 200 to avoid email enumeration
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (authRateLimit(ip)) {
+    return NextResponse.json({ error: "Za dużo prób. Spróbuj za 15 minut." }, { status: 429 });
+  }
+
   const { email } = await req.json();
 
   if (!email?.trim()) {

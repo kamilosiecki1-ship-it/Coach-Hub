@@ -1,5 +1,35 @@
 import { prisma } from "@/lib/prisma";
 
+// --- In-memory IP-based rate limiter ---
+
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
+function makeIpRateLimiter(maxRequests: number, windowMs: number) {
+  const store = new Map<string, RateLimitEntry>();
+
+  return function isLimited(key: string): boolean {
+    const now = Date.now();
+    const entry = store.get(key);
+
+    if (!entry || now >= entry.resetAt) {
+      store.set(key, { count: 1, resetAt: now + windowMs });
+      return false;
+    }
+
+    entry.count += 1;
+    return entry.count > maxRequests;
+  };
+}
+
+// 10 requests per 15 minutes per IP — for registration and password reset
+export const authRateLimit = makeIpRateLimiter(10, 15 * 60 * 1000);
+
+// 5 requests per 15 minutes per key — for login (keyed by email)
+export const loginRateLimit = makeIpRateLimiter(5, 15 * 60 * 1000);
+
 export const AI_RATE_LIMITS = {
   perHour: 60,
   perDay: 300,

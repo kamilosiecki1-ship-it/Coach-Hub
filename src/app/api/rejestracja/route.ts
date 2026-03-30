@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { hashToken, validatePassword } from "@/lib/tokens";
+import { authRateLimit } from "@/lib/rateLimit";
 
 // GET /api/rejestracja?token=XXX — lightweight token pre-validation
 export async function GET(req: NextRequest) {
@@ -24,6 +25,11 @@ export async function GET(req: NextRequest) {
 
 // POST /api/rejestracja — create account using invitation
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (authRateLimit(ip)) {
+    return NextResponse.json({ error: "Za dużo prób. Spróbuj za 15 minut." }, { status: 429 });
+  }
+
   const body = await req.json();
   const { token, name, email, password, passwordConfirm } = body;
 
