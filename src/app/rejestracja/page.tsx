@@ -202,7 +202,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Minimum 6 znaków.
+                Minimum 8 znaków, w tym co najmniej jedna cyfra lub znak specjalny.
               </p>
             </div>
 

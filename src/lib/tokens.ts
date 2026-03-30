@@ -11,9 +11,13 @@ export function hashToken(token: string): string {
 }
 
 /** Validates a password against the app rules:
- *  - more than 5 characters
+ *  - at least 8 characters
+ *  - at least one digit or special character
  */
 export function validatePassword(password: string): string | null {
-  if (password.length <= 5) return "Hasło musi mieć więcej niż 5 znaków.";
+  if (password.length < 8) return "Hasło musi mieć co najmniej 8 znaków.";
+  if (!/[0-9!@#$%^&*_+={};<>?]/.test(password)) {
+    return "Hasło musi zawierać co najmniej jedną cyfrę lub znak specjalny.";
+  }
   return null;
 }
