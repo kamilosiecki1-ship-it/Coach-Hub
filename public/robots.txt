@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /pulpit
+Disallow: /klienci
+Disallow: /ustawienia
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://sessionlab.app/sitemap.xml
