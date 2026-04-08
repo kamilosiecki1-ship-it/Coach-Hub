@@ -203,9 +203,3 @@ W sprawach dotyczących Regulaminu i Platformy:
 - **Załącznik nr 2:** Polityka Prywatności — [link do doc. 06]
 - **Załącznik nr 3:** Wzorzec klauzuli informacyjnej dla Coachees — [link do doc. 08]
 - **Załącznik nr 4:** Wzorzec zgody Coachee na AI — [link do doc. 10]
-
----
-
-*Regulamin przygotowany przez: Head of Legal, Session Lab*
-*Wersja: 1.0 — 2026-03-30*
-*Status: WERSJA ROBOCZA — wymaga weryfikacji prawnika przed wdrożeniem*

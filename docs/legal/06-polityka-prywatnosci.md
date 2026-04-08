@@ -140,10 +140,3 @@ O zmianach niniejszej Polityki Coachowie zostaną powiadomieni drogą emailową 
 
 **Email:** hello@sessionlab.app
 **Adres:** ul. Gąsiorowskiego 30, 05-520 Konstancin-Jeziorna
-
-
----
-
-*Polityka Prywatności przygotowana przez: Head of Legal, Session Lab*
-*Wersja: 1.0 — 2026-03-30*
-*Status: WERSJA ROBOCZA — wymaga weryfikacji prawnika przed wdrożeniem*

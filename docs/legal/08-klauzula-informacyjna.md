@@ -140,9 +140,3 @@ Twoje dane mogą być przekazywane do Stanów Zjednoczonych (Supabase, Vercel, O
 Jeśli Coach zamierza korzystać z Funkcji AI lub przetwarzać Twoje dane szczególnej kategorii (art. 9 RODO), poprosi Cię o podpisanie **odrębnego formularza zgody**.
 
 Twoja zgoda jest dobrowolna. Odmowa nie wpłynie negatywnie na Twoje relacje z Coachem ani na możliwość korzystania z procesu coachingowego (choć może ograniczyć dostęp do niektórych funkcji AI).
-
----
-
-*Klauzula informacyjna przygotowana przez: Head of Legal, Session Lab*
-*Wzorzec do wypełnienia przez Coacha i przekazania Coachee*
-*Wersja: 1.0 — 2026-03-30*
