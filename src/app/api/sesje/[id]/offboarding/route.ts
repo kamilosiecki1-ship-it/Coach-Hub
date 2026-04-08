@@ -6,7 +6,7 @@ import { generateOffboardingNote } from "@/lib/offboardingNote";
 import { z } from "zod";
 
 const offboardingSchema = z.object({
-  date: z.string().datetime().nullable().optional(),
+  date: z.string().date().nullable().optional(),
   sessionNumber: z.number().int().min(1).max(10000).nullable().optional(),
   hours: z.number().min(0).max(24).nullable().optional(),
   clientLabel: z.string().max(500).nullable().optional(),
