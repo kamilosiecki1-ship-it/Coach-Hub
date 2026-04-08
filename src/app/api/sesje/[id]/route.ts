@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const patchSessionSchema = z.object({
-  scheduledAt: z.string().datetime().optional(),
-  durationMin: z.number().int().min(1).max(480).nullable().optional(),
+  scheduledAt: z.string().min(1).optional(),
+  durationMin: z.coerce.number().int().min(1).max(480).nullable().optional(),
   status: z.enum(["Zaplanowana", "Odbyta", "Anulowana"]).optional(),
   notesMd: z.string().max(5000).optional(),
   summaryMd: z.string().max(50000).optional(),

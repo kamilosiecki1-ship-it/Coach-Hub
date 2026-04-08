@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const createSessionSchema = z.object({
-  clientId: z.string().uuid(),
-  scheduledAt: z.string().datetime(),
-  durationMin: z.number().int().min(1).max(480).optional(),
+  clientId: z.string().min(1),
+  scheduledAt: z.string().min(1),
+  durationMin: z.coerce.number().int().min(1).max(480).optional(),
   notes: z.string().max(5000).optional(),
 });
 
